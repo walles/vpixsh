@@ -4,9 +4,9 @@
 
 - Fully `bash` compatible command line syntax (unlike `fish`)
 - No scripting support
-- Web UI (idea from `fish`) for configuring:
-  - Default environment variables (missing in `fish`)
-  - `$PATH` value (missing in `fish`)
+- Configuration in `~/.vpixsh.yaml`
+  - Default environment variables
+  - `$PATH` value
 - `git` friendly prompt
 
 Cred to
