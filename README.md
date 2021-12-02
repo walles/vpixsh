@@ -13,6 +13,10 @@ Cred to
 [https://random.org](https://random.org/strings/?num=10&len=4&loweralpha=on&unique=on&format=html&rnd=new)
 for the name.
 
+## Development
+
+Do `cargo test` to run the test suite.
+
 ## TODO
 
 - `bash` compatible command line parser

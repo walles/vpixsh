@@ -43,43 +43,44 @@ mod tests {
     use super::*;
 
     struct TestExecutor {
-        highlighted: Vec<u8>,
+        executions: Vec<String>,
     }
 
     impl Executor for TestExecutor {
         fn execute(&mut self, command: &StringAtIndex, args: &[StringAtIndex]) {
-            // Set highlights for command
-            for i in command.byte_index..command.after_last_byte_index() {
-                self.highlighted[i] = b'0';
+            let mut command_with_args = vec![command.string.to_owned()];
+
+            for arg in args {
+                command_with_args.push(arg.string.to_owned());
             }
 
-            // Set highlights for args
-            for (argno, arg) in args.iter().enumerate() {
-                for i in arg.byte_index..arg.after_last_byte_index() {
-                    self.highlighted[i] = b'1' + (argno as u8);
-                }
-            }
+            self.executions
+                .push(format!("exec('{}')", command_with_args.join("', '")));
         }
     }
 
     impl TestExecutor {
-        fn new(commandline: &str) -> TestExecutor {
+        fn new() -> TestExecutor {
             return TestExecutor {
-                highlighted: vec![b' '; commandline.len()],
+                executions: Vec::new(),
             };
         }
     }
 
-    fn parse_into_testrep(commandline: &str) -> String {
-        let mut test_executor: TestExecutor = TestExecutor::new(commandline);
+    fn parse_into_testrep(commandline: &str) -> Vec<String> {
+        let mut test_executor: TestExecutor = TestExecutor::new();
         parse(commandline, &mut test_executor);
-        return std::str::from_utf8(&test_executor.highlighted)
-            .unwrap()
-            .to_string();
+
+        return test_executor.executions;
     }
 
     #[test]
     fn test_parse_base() {
-        assert_eq!(parse_into_testrep("echo hej"), "0000 111");
+        assert_eq!(parse_into_testrep("echo"), ["exec('echo')"]);
+        assert_eq!(parse_into_testrep("echo hej"), ["exec('echo', 'hej')"]);
+        assert_eq!(
+            parse_into_testrep("echo hej nej"),
+            ["exec('echo', 'hej', 'nej')"]
+        );
     }
 }
