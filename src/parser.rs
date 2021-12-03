@@ -1,3 +1,5 @@
+lalrpop_mod!(pub commandline); // synthesized by LALRPOP
+
 struct StringAtIndex {
     first_byte_index: usize,
     last_byte_index: usize,
@@ -24,39 +26,17 @@ fn addr_of(s: &str) -> usize {
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
 fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let split: Vec<_> = commandline
-        .split_whitespace()
-        .map(move |arg| StringAtIndex {
-            first_byte_index: addr_of(arg) - addr_of(commandline),
-            last_byte_index: arg.len() + addr_of(arg) - addr_of(commandline) - 1,
-            string: arg.to_string(),
-        })
-        .collect();
-
-    if split.is_empty() {
-        return " ".repeat(commandline.len());
+    let parse_result = commandline::CommandlineParser::new().parse(commandline);
+    if parse_result.is_ok() {
+        return "OK".to_string();
     }
+    return "Not OK".to_string();
 
-    executor.execute(&split[0], &split[1..]);
+    // FIXME: executor.execute(&split[0], &split[1..]);
 
-    let mut highlights = vec![b' '; commandline.len()];
-    for (index, token) in split.iter().enumerate() {
-        let highlighting_code: u8;
-        if index == 0 {
-            highlighting_code = b'0';
-        } else if index % 2 == 1 {
-            highlighting_code = b'a';
-        } else {
-            highlighting_code = b'A';
-        }
-
-        #[allow(clippy::needless_range_loop)]
-        for i in token.first_byte_index..(token.last_byte_index + 1) {
-            highlights[i] = highlighting_code;
-        }
-    }
-
-    return String::from_utf8(highlights).unwrap();
+    // FIXME: let mut highlights = vec![b' '; commandline.len()];
+    // FIXME: Highlight correct parts of the string
+    // FIXME: return String::from_utf8(highlights).unwrap();
 }
 
 #[cfg(test)]
@@ -120,6 +100,8 @@ mod tests {
             )
         );
     }
+
+    // FIXME: Test parsing an empty command line
 
     // FIXME: Test with extra spacing: " echo  hej"
 }
