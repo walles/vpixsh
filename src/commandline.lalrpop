@@ -1,10 +1,12 @@
-use std::str::FromStr;
-
 grammar;
 
-pub Term: i32 = {
-    <n:Num> => n,
-    "(" <t:Term> ")" => t,
+pub Commandline: String = {
+    Words,
+}
+
+Words: String = {
+    <l:Words> " " <r:Word> => [l, r].concat(),
+    Word,
 };
 
-Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();
+Word: String = <w:r"[^ ]+"> => w.to_string();
