@@ -8,10 +8,6 @@ trait Executor {
     fn execute(&mut self, command: &str, args: &[String]);
 }
 
-fn addr_of(s: &str) -> usize {
-    s.as_ptr() as usize
-}
-
 /// Returns a string of the same length as the command line, containing
 /// highlighting information.
 ///
