@@ -1,17 +1,11 @@
 lalrpop_mod!(pub commandline); // synthesized by LALRPOP
 
-struct StringAtIndex {
-    first_byte_index: usize,
-    last_byte_index: usize,
-    string: String,
-}
-
 trait Executor {
     /// command is the binary to executs
     ///
     /// argv is all the command line arguments. argv does *not* include the
     /// command itself, and will be empty if no arguments are required.
-    fn execute(&mut self, command: &StringAtIndex, args: &[StringAtIndex]);
+    fn execute(&mut self, command: &str, args: &[String]);
 }
 
 fn addr_of(s: &str) -> usize {
@@ -26,11 +20,13 @@ fn addr_of(s: &str) -> usize {
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
 fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let parse_result = commandline::CommandlineParser::new().parse(commandline);
-    if parse_result.is_ok() {
-        return "OK".to_string();
-    }
-    return "Not OK".to_string();
+    let parse_result: Vec<String> = commandline::CommandlineParser::new()
+        .parse(commandline)
+        .unwrap();
+
+    executor.execute(&parse_result[0], &parse_result[1..]);
+
+    return "FIXME: Highlights should go here".to_string();
 
     // FIXME: executor.execute(&split[0], &split[1..]);
 
@@ -49,11 +45,11 @@ mod tests {
     }
 
     impl Executor for TestExecutor {
-        fn execute(&mut self, command: &StringAtIndex, args: &[StringAtIndex]) {
-            let mut command_with_args = vec![command.string.to_owned()];
+        fn execute(&mut self, command: &str, args: &[String]) {
+            let mut command_with_args = vec![command.to_owned()];
 
             for arg in args {
-                command_with_args.push(arg.string.to_owned());
+                command_with_args.push(arg.to_owned());
             }
 
             self.executions

@@ -1,12 +1,12 @@
 grammar;
 
-pub Commandline: String = {
+pub Commandline: Vec<String> = {
     Words,
 }
 
-Words: String = {
-    <l:Words> " " <r:Word> => [l, r].concat(),
-    Word,
+Words: Vec<String> = {
+    <mut l:Words> " " <r:Word> => {l.push(r.to_string()); l },
+    <w:Word> => vec![w.to_string()],
 };
 
 Word: String = <w:r"[^ ]+"> => w.to_string();
