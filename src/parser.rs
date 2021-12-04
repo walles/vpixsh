@@ -1,4 +1,4 @@
-lalrpop_mod!(pub commandline); // synthesized by LALRPOP
+use crate::commandline;
 
 trait Executor {
     /// command is the binary to executs

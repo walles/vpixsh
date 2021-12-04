@@ -1,10 +1,6 @@
 #![allow(clippy::needless_return)]
 
-#[macro_use]
-extern crate lalrpop_util;
-
-lalrpop_mod!(pub commandline); // synthesized by LALRPOP
-
+mod commandline;
 mod parser;
 
 fn main() {
