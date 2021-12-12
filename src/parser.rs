@@ -49,7 +49,7 @@ fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
         }
 
         let first_byte_index = token.location_offset();
-        let last_byte_index = token.location_offset() + token.len() - 1;
+        let last_byte_index = token.location_offset() + token.chars().count() - 1;
         #[allow(clippy::needless_range_loop)]
         for i in first_byte_index..(last_byte_index + 1) {
             highlights[i] = highlighting_code;
