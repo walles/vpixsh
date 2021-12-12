@@ -1,15 +1,12 @@
-struct StringAtIndex {
-    first_byte_index: usize,
-    last_byte_index: usize,
-    string: String,
-}
+use nom::Slice;
+use nom_locate::LocatedSpan;
 
 trait Executor {
     /// command is the binary to executs
     ///
     /// argv is all the command line arguments. argv does *not* include the
     /// command itself, and will be empty if no arguments are required.
-    fn execute(&mut self, command: &StringAtIndex, args: &[StringAtIndex]);
+    fn execute(&mut self, command: &LocatedSpan<&str, ()>, args: &[LocatedSpan<&str, ()>]);
 }
 
 fn addr_of(s: &str) -> usize {
@@ -24,12 +21,13 @@ fn addr_of(s: &str) -> usize {
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
 fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let split: Vec<_> = commandline
+    let spanned_commandline = LocatedSpan::new(commandline);
+    let split: Vec<LocatedSpan<&str, ()>> = commandline
         .split_whitespace()
-        .map(move |arg| StringAtIndex {
-            first_byte_index: addr_of(arg) - addr_of(commandline),
-            last_byte_index: arg.len() + addr_of(arg) - addr_of(commandline) - 1,
-            string: arg.to_string(),
+        .map(move |arg| {
+            let first_byte_index = addr_of(arg) - addr_of(commandline);
+            let last_byte_index = arg.len() + addr_of(arg) - addr_of(commandline) - 1;
+            spanned_commandline.slice(first_byte_index..(last_byte_index + 1))
         })
         .collect();
 
@@ -50,8 +48,10 @@ fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
             highlighting_code = b'A';
         }
 
+        let first_byte_index = token.location_offset();
+        let last_byte_index = token.location_offset() + token.len() - 1;
         #[allow(clippy::needless_range_loop)]
-        for i in token.first_byte_index..(token.last_byte_index + 1) {
+        for i in first_byte_index..(last_byte_index + 1) {
             highlights[i] = highlighting_code;
         }
     }
@@ -69,11 +69,11 @@ mod tests {
     }
 
     impl Executor for TestExecutor {
-        fn execute(&mut self, command: &StringAtIndex, args: &[StringAtIndex]) {
-            let mut command_with_args = vec![command.string.to_owned()];
+        fn execute(&mut self, command: &LocatedSpan<&str, ()>, args: &[LocatedSpan<&str, ()>]) {
+            let mut command_with_args = vec![command.to_string()];
 
             for arg in args {
-                command_with_args.push(arg.string.to_owned());
+                command_with_args.push(arg.to_string());
             }
 
             self.executions
@@ -120,6 +120,8 @@ mod tests {
             )
         );
     }
+
+    // FIXME: Do test_parse_base with UTF-8 chars in it
 
     // FIXME: Test with extra spacing: " echo  hej"
 }
