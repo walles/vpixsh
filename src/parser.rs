@@ -1,24 +1,20 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1},
+    character::complete::{alpha1, alphanumeric1, space1},
     combinator::recognize,
-    multi::many0,
+    multi::{many0, separated_list1},
     sequence::pair,
-    IResult, Slice,
+    IResult,
 };
 use nom_locate::LocatedSpan;
 
-trait Executor {
+pub(crate) trait Executor {
     /// command is the binary to executs
     ///
     /// argv is all the command line arguments. argv does *not* include the
     /// command itself, and will be empty if no arguments are required.
     fn execute(&mut self, command: &LocatedSpan<&str, ()>, args: &[LocatedSpan<&str, ()>]);
-}
-
-fn addr_of(s: &str) -> usize {
-    s.as_ptr() as usize
 }
 
 fn word(input: LocatedSpan<&str, ()>) -> IResult<LocatedSpan<&str, ()>, LocatedSpan<&str, ()>> {
@@ -28,6 +24,12 @@ fn word(input: LocatedSpan<&str, ()>) -> IResult<LocatedSpan<&str, ()>, LocatedS
     ))(input)
 }
 
+fn words(
+    input: LocatedSpan<&str, ()>,
+) -> IResult<LocatedSpan<&str, ()>, Vec<LocatedSpan<&str, ()>>> {
+    return separated_list1(space1, word)(input);
+}
+
 /// Returns a string of the same length as the command line, containing
 /// highlighting information.
 ///
@@ -35,18 +37,18 @@ fn word(input: LocatedSpan<&str, ()>) -> IResult<LocatedSpan<&str, ()>, LocatedS
 /// * `0` Executable command
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
-fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
+pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let spanned_commandline = LocatedSpan::new(commandline);
-    let words = vec![word(spanned_commandline).unwrap().1];
+    let command_words = words(spanned_commandline).unwrap().1;
 
-    if words.is_empty() {
+    if command_words.is_empty() {
         return " ".repeat(commandline.len());
     }
 
-    executor.execute(&words[0], &words[1..]);
+    executor.execute(&command_words[0], &command_words[1..]);
 
     let mut highlights = vec![b' '; commandline.len()];
-    for (index, token) in words.iter().enumerate() {
+    for (index, token) in command_words.iter().enumerate() {
         let highlighting_code: u8;
         if index == 0 {
             highlighting_code = b'0';
