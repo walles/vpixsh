@@ -10,16 +10,20 @@ struct SlaskExecutor {}
 impl Executor for SlaskExecutor {
     fn execute(
         &mut self,
-        _command: &nom_locate::LocatedSpan<&str, ()>,
-        _args: &[nom_locate::LocatedSpan<&str, ()>],
+        command: &nom_locate::LocatedSpan<&str, ()>,
+        args: &[nom_locate::LocatedSpan<&str, ()>],
     ) {
-        // This method left blank until further notice
+        let mut command_with_args = vec![command.to_string()];
+
+        for arg in args {
+            command_with_args.push(arg.to_string());
+        }
+
+        println!("exec('{}')", command_with_args.join("', '"));
     }
 }
 
 fn main() {
-    println!("Hello World!");
-
     // For now, this call is here to get rid of some unused-code warnings
-    parse("echo", &mut SlaskExecutor {});
+    parse("echo hello world", &mut SlaskExecutor {});
 }
