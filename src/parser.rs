@@ -1,4 +1,12 @@
-use nom::Slice;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alpha1, alphanumeric1},
+    combinator::recognize,
+    multi::many0,
+    sequence::pair,
+    IResult, Slice,
+};
 use nom_locate::LocatedSpan;
 
 trait Executor {
@@ -13,6 +21,13 @@ fn addr_of(s: &str) -> usize {
     s.as_ptr() as usize
 }
 
+fn word(input: LocatedSpan<&str, ()>) -> IResult<LocatedSpan<&str, ()>, LocatedSpan<&str, ()>> {
+    recognize(pair(
+        alt((alpha1, tag("_"))),
+        many0(alt((alphanumeric1, tag("_")))),
+    ))(input)
+}
+
 /// Returns a string of the same length as the command line, containing
 /// highlighting information.
 ///
@@ -22,23 +37,16 @@ fn addr_of(s: &str) -> usize {
 /// * `A` Second argument, fourth, sixth etc...
 fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let spanned_commandline = LocatedSpan::new(commandline);
-    let split: Vec<LocatedSpan<&str, ()>> = commandline
-        .split_whitespace()
-        .map(move |arg| {
-            let first_byte_index = addr_of(arg) - addr_of(commandline);
-            let last_byte_index = arg.len() + addr_of(arg) - addr_of(commandline) - 1;
-            spanned_commandline.slice(first_byte_index..(last_byte_index + 1))
-        })
-        .collect();
+    let words = vec![word(spanned_commandline).unwrap().1];
 
-    if split.is_empty() {
+    if words.is_empty() {
         return " ".repeat(commandline.len());
     }
 
-    executor.execute(&split[0], &split[1..]);
+    executor.execute(&words[0], &words[1..]);
 
     let mut highlights = vec![b' '; commandline.len()];
-    for (index, token) in split.iter().enumerate() {
+    for (index, token) in words.iter().enumerate() {
         let highlighting_code: u8;
         if index == 0 {
             highlighting_code = b'0';
