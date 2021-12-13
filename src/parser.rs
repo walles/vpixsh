@@ -9,24 +9,24 @@ use nom::{
 };
 use nom_locate::LocatedSpan;
 
+pub(crate) type Span<'a> = LocatedSpan<&'a str, ()>;
+
 pub(crate) trait Executor {
     /// command is the binary to executs
     ///
     /// argv is all the command line arguments. argv does *not* include the
     /// command itself, and will be empty if no arguments are required.
-    fn execute(&mut self, command: &LocatedSpan<&str, ()>, args: &[LocatedSpan<&str, ()>]);
+    fn execute(&mut self, command: &Span, args: &[Span]);
 }
 
-fn word(input: LocatedSpan<&str, ()>) -> IResult<LocatedSpan<&str, ()>, LocatedSpan<&str, ()>> {
+fn word(input: Span) -> IResult<Span, Span> {
     recognize(pair(
         alt((alpha1, tag("_"))),
         many0(alt((alphanumeric1, tag("_")))),
     ))(input)
 }
 
-fn words(
-    input: LocatedSpan<&str, ()>,
-) -> IResult<LocatedSpan<&str, ()>, Vec<LocatedSpan<&str, ()>>> {
+fn words(input: Span) -> IResult<Span, Vec<Span>> {
     return separated_list1(space1, word)(input);
 }
 
@@ -79,7 +79,7 @@ mod tests {
     }
 
     impl Executor for TestExecutor {
-        fn execute(&mut self, command: &LocatedSpan<&str, ()>, args: &[LocatedSpan<&str, ()>]) {
+        fn execute(&mut self, command: &Span, args: &[Span]) {
             let mut command_with_args = vec![command.to_string()];
 
             for arg in args {

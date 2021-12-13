@@ -1,18 +1,13 @@
 #![allow(clippy::needless_return)]
 
-use crate::parser::parse;
-use crate::parser::Executor;
+use crate::parser::{parse, Executor, Span};
 
 mod parser;
 
 struct SlaskExecutor {}
 
 impl Executor for SlaskExecutor {
-    fn execute(
-        &mut self,
-        command: &nom_locate::LocatedSpan<&str, ()>,
-        args: &[nom_locate::LocatedSpan<&str, ()>],
-    ) {
+    fn execute(&mut self, command: &Span, args: &[Span]) {
         let mut command_with_args = vec![command.to_string()];
 
         for arg in args {
