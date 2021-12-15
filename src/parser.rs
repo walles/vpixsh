@@ -3,11 +3,11 @@ use nom::{
     bytes::complete::tag,
     combinator::recognize,
     multi::{many0, separated_list1},
-    sequence::pair,
+    sequence::{delimited, pair},
     IResult,
 };
 use nom_locate::LocatedSpan;
-use nom_unicode::complete::{alpha1, alphanumeric1, space1};
+use nom_unicode::complete::{alpha1, alphanumeric1, space0, space1};
 
 pub(crate) type Span<'a> = LocatedSpan<&'a str, ()>;
 
@@ -27,7 +27,7 @@ fn word(input: Span) -> IResult<Span, Span> {
 }
 
 fn words(input: Span) -> IResult<Span, Vec<Span>> {
-    return separated_list1(space1, word)(input);
+    return delimited(space0, separated_list1(space1, word), space0)(input);
 }
 
 /// Returns a string of the same length as the command line, containing
@@ -142,5 +142,14 @@ mod tests {
         );
     }
 
-    // FIXME: Test with extra spacing: " echo  hej   "
+    #[test]
+    fn test_parse_extra_spacing() {
+        assert_eq!(
+            parse_into_testrep(" echo  apa   "),
+            (
+                vec!["exec('echo', 'apa')".to_string()],
+                " 0000  aaa   ".to_string()
+            )
+        );
+    }
 }
