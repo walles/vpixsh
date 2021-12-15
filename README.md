@@ -5,6 +5,8 @@
 - Fully [`sh` compatible
   grammar](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_10)
   (unlike `fish`)
+  - [List of Posix shell
+    operators](https://unix.stackexchange.com/a/159514/384864)
 - Syntax highlighting at the prompt
 - No scripting support except what's required below, `vpixsh` should be a
   commandline first experience
