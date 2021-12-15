@@ -1,13 +1,13 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, space1},
     combinator::recognize,
     multi::{many0, separated_list1},
     sequence::pair,
     IResult,
 };
 use nom_locate::LocatedSpan;
+use nom_unicode::complete::{alpha1, alphanumeric1, space1};
 
 pub(crate) type Span<'a> = LocatedSpan<&'a str, ()>;
 
@@ -47,7 +47,7 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
 
     executor.execute(&command_words[0], &command_words[1..]);
 
-    let mut highlights = vec![b' '; commandline.len()];
+    let mut highlights = vec![b' '; commandline.chars().count()];
     for (index, token) in command_words.iter().enumerate() {
         let highlighting_code: u8;
         if index == 0 {
@@ -58,10 +58,10 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
             highlighting_code = b'A';
         }
 
-        let first_byte_index = token.location_offset();
-        let last_byte_index = token.location_offset() + token.chars().count() - 1;
+        let first_char_index = token.get_utf8_column() - 1;
+        let last_char_index = token.get_utf8_column() + token.chars().count() - 2;
         #[allow(clippy::needless_range_loop)]
-        for i in first_byte_index..(last_byte_index + 1) {
+        for i in first_char_index..(last_char_index + 1) {
             highlights[i] = highlighting_code;
         }
     }
@@ -131,7 +131,16 @@ mod tests {
         );
     }
 
-    // FIXME: Do test_parse_base with UTF-8 chars in it
+    #[test]
+    fn test_parse_utf8() {
+        assert_eq!(
+            parse_into_testrep("ödla hår är"),
+            (
+                vec!["exec('ödla', 'hår', 'är')".to_string()],
+                "0000 aaa AA".to_string()
+            )
+        );
+    }
 
-    // FIXME: Test with extra spacing: " echo  hej"
+    // FIXME: Test with extra spacing: " echo  hej   "
 }
