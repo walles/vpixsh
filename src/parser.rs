@@ -1,20 +1,26 @@
 use nom::Slice;
 use nom_locate::LocatedSpan;
 
-pub(crate) type Span<'a> = LocatedSpan<&'a str, ()>;
+enum TokenKind {
+    Word,
+}
+struct Token<'a> {
+    text: LocatedSpan<&'a str, ()>,
+    kind: TokenKind,
+}
 
 pub(crate) trait Executor {
     /// command is the binary to executs
     ///
     /// argv is all the command line arguments. argv does *not* include the
     /// command itself, and will be empty if no arguments are required.
-    fn execute(&mut self, command: &Span, args: &[Span]);
+    fn execute(&mut self, command: &str, args: &[String]);
 }
 
 /// Implementation of these ten steps:
 /// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-fn string_to_tokens<'a>(input: &'a Span) -> Vec<Span<'a>> {
-    let mut result: Vec<Span> = vec![];
+fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
+    let mut result: Vec<Token> = vec![];
     let mut token_start: usize = 0; // Byte index
 
     for (byteindex, character) in input.char_indices() {
@@ -22,7 +28,10 @@ fn string_to_tokens<'a>(input: &'a Span) -> Vec<Span<'a>> {
         if character == ' ' {
             if token_start < byteindex {
                 // We were inside a token
-                result.push(input.slice(token_start..byteindex));
+                result.push(Token {
+                    text: input.slice(token_start..byteindex),
+                    kind: TokenKind::Word,
+                });
             }
             token_start = byteindex + character.len_utf8();
             continue;
@@ -37,7 +46,12 @@ fn string_to_tokens<'a>(input: &'a Span) -> Vec<Span<'a>> {
 
     if token_start < input.len() {
         // Rule 1
-        result.push(input.slice(token_start..));
+        result.push(Token {
+            text: input.slice(token_start..),
+
+            // FIXME: How can we know this is a word? Add tests!
+            kind: TokenKind::Word,
+        });
     }
 
     return result;
@@ -52,16 +66,21 @@ fn string_to_tokens<'a>(input: &'a Span) -> Vec<Span<'a>> {
 /// * `A` Second argument, fourth, sixth etc...
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let spanned_commandline = LocatedSpan::new(commandline);
-    let command_tokens = string_to_tokens(&spanned_commandline);
-
-    if command_tokens.is_empty() {
+    let tokens = string_to_tokens(&spanned_commandline);
+    if tokens.is_empty() {
         return " ".repeat(commandline.len());
     }
 
-    executor.execute(&command_tokens[0], &command_tokens[1..]);
+    let mut words: Vec<String> = Vec::new();
+    for token in &tokens {
+        match token.kind {
+            TokenKind::Word => words.push(token.text.to_string()),
+        }
+    }
+    executor.execute(&words[0], &words[1..]);
 
     let mut highlights = vec![b' '; commandline.chars().count()];
-    for (index, token) in command_tokens.iter().enumerate() {
+    for (index, token) in tokens.iter().enumerate() {
         let highlighting_code: u8;
         if index == 0 {
             highlighting_code = b'0';
@@ -71,8 +90,8 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
             highlighting_code = b'A';
         }
 
-        let first_char_index = token.get_utf8_column() - 1;
-        let last_char_index = token.get_utf8_column() + token.chars().count() - 2;
+        let first_char_index = token.text.get_utf8_column() - 1;
+        let last_char_index = token.text.get_utf8_column() + token.text.chars().count() - 2;
         #[allow(clippy::needless_range_loop)]
         for i in first_char_index..(last_char_index + 1) {
             highlights[i] = highlighting_code;
@@ -92,11 +111,11 @@ mod tests {
     }
 
     impl Executor for TestExecutor {
-        fn execute(&mut self, command: &Span, args: &[Span]) {
-            let mut command_with_args = vec![command.to_string()];
+        fn execute(&mut self, command: &str, args: &[String]) {
+            let mut command_with_args: Vec<String> = vec![command.to_owned()];
 
             for arg in args {
-                command_with_args.push(arg.to_string());
+                command_with_args.push(arg.to_owned());
             }
 
             self.executions
