@@ -2,11 +2,16 @@
 
 `vpixsh` is a shell featuring:
 
-- Fully [`sh` compatible
+- [`sh` compatible
   grammar](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_10)
   (unlike `fish`)
-  - [List of Posix shell
-    operators](https://unix.stackexchange.com/a/159514/384864)
+  - No Here-Documents, they make no sense on the commandline
+  - [An
+    "operator"](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_260)
+    is either a [control
+    operator](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_113)
+    or a [redirection
+    operator](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_318).
 - Syntax highlighting at the prompt
 - No scripting support except what's required below, `vpixsh` should be a
   commandline first experience
