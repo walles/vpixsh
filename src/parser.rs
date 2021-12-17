@@ -1,13 +1,5 @@
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    combinator::recognize,
-    multi::{many0, separated_list1},
-    sequence::{delimited, pair},
-    IResult,
-};
+use nom::Slice;
 use nom_locate::LocatedSpan;
-use nom_unicode::complete::{alpha1, alphanumeric1, space0, space1};
 
 pub(crate) type Span<'a> = LocatedSpan<&'a str, ()>;
 
@@ -19,15 +11,36 @@ pub(crate) trait Executor {
     fn execute(&mut self, command: &Span, args: &[Span]);
 }
 
-fn word(input: Span) -> IResult<Span, Span> {
-    recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
-    ))(input)
-}
+/// Implementation of these ten steps:
+/// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
+fn string_to_tokens<'a>(input: &'a Span) -> Vec<Span<'a>> {
+    let mut result: Vec<Span> = vec![];
+    let mut token_start: usize = 0; // Byte index
 
-fn words(input: Span) -> IResult<Span, Vec<Span>> {
-    return delimited(space0, separated_list1(space1, word), space0)(input);
+    for (byteindex, character) in input.char_indices() {
+        // Rule 7
+        if character == ' ' {
+            if token_start < byteindex {
+                // We were inside a token
+                result.push(input.slice(token_start..byteindex));
+            }
+            token_start = byteindex + character.len_utf8();
+            continue;
+        }
+
+        // Rule 8
+        if token_start <= byteindex {
+            // We're inside a word, just keep iterating over that word
+            continue;
+        }
+    }
+
+    if token_start < input.len() {
+        // Rule 1
+        result.push(input.slice(token_start..));
+    }
+
+    return result;
 }
 
 /// Returns a string of the same length as the command line, containing
@@ -39,16 +52,16 @@ fn words(input: Span) -> IResult<Span, Vec<Span>> {
 /// * `A` Second argument, fourth, sixth etc...
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let spanned_commandline = LocatedSpan::new(commandline);
-    let command_words = words(spanned_commandline).unwrap().1;
+    let command_tokens = string_to_tokens(&spanned_commandline);
 
-    if command_words.is_empty() {
+    if command_tokens.is_empty() {
         return " ".repeat(commandline.len());
     }
 
-    executor.execute(&command_words[0], &command_words[1..]);
+    executor.execute(&command_tokens[0], &command_tokens[1..]);
 
     let mut highlights = vec![b' '; commandline.chars().count()];
-    for (index, token) in command_words.iter().enumerate() {
+    for (index, token) in command_tokens.iter().enumerate() {
         let highlighting_code: u8;
         if index == 0 {
             highlighting_code = b'0';
