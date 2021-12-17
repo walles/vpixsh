@@ -3,6 +3,7 @@ use nom_locate::LocatedSpan;
 
 enum TokenKind {
     Word,
+    Comment,
 }
 struct Token<'a> {
     text: LocatedSpan<&'a str, ()>,
@@ -30,11 +31,35 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
                 // We were inside a token
                 result.push(Token {
                     text: input.slice(token_start..byteindex),
+
+                    // FIXME: How can we know this is a word? Add tests!
                     kind: TokenKind::Word,
                 });
             }
+
+            // Rule 10, try starting a new token at the next character
             token_start = byteindex + character.len_utf8();
             continue;
+        }
+
+        // Rule 9
+        if character == '#' {
+            if token_start < byteindex {
+                // We were in the middle of something, push it!
+                result.push(Token {
+                    text: input.slice(token_start..byteindex),
+
+                    // FIXME: How can we know this is a word? Add tests!
+                    kind: TokenKind::Word,
+                });
+            }
+
+            result.push(Token {
+                text: input.slice(byteindex..),
+                kind: TokenKind::Comment,
+            });
+
+            return result;
         }
 
         // Rule 8
@@ -64,6 +89,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
 /// * `0` Executable command
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
+/// * `c` Comment
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let spanned_commandline = LocatedSpan::new(commandline);
     let tokens = string_to_tokens(&spanned_commandline);
@@ -73,21 +99,28 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
 
     let mut words: Vec<String> = Vec::new();
     for token in &tokens {
-        match token.kind {
-            TokenKind::Word => words.push(token.text.to_string()),
+        if let TokenKind::Word = token.kind {
+            words.push(token.text.to_string())
         }
     }
     executor.execute(&words[0], &words[1..]);
 
     let mut highlights = vec![b' '; commandline.chars().count()];
-    for (index, token) in tokens.iter().enumerate() {
+    let mut word_index: usize = 0;
+    for token in tokens.iter() {
         let highlighting_code: u8;
-        if index == 0 {
-            highlighting_code = b'0';
-        } else if index % 2 == 1 {
-            highlighting_code = b'a';
-        } else {
-            highlighting_code = b'A';
+        match token.kind {
+            TokenKind::Word => {
+                if word_index == 0 {
+                    highlighting_code = b'0';
+                } else if word_index % 2 == 1 {
+                    highlighting_code = b'a';
+                } else {
+                    highlighting_code = b'A';
+                }
+                word_index += 1;
+            }
+            TokenKind::Comment => highlighting_code = b'c',
         }
 
         let first_char_index = token.text.get_utf8_column() - 1;
@@ -181,6 +214,25 @@ mod tests {
             (
                 vec!["exec('echo', 'apa')".to_string()],
                 " 0000  aaa   ".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn test_comment() {
+        assert_eq!(
+            parse_into_testrep("echo apa#"),
+            (
+                vec!["exec('echo', 'apa')".to_string()],
+                "0000 aaac".to_string()
+            )
+        );
+
+        assert_eq!(
+            parse_into_testrep("echo apa #grisar"),
+            (
+                vec!["exec('echo', 'apa')".to_string()],
+                "0000 aaa ccccccc".to_string()
             )
         );
     }
