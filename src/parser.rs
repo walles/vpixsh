@@ -14,6 +14,31 @@ pub(crate) trait Executor {
     fn execute(&mut self, command: &str, args: &[String]);
 }
 
+/// [Operators can
+/// be](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_260)
+/// either [control
+/// operators](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_113)
+/// or [redirection
+/// operators](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_318).
+static OPERATORS: [&str; 18] = [
+    "&", "&&", "(", ")", ";", ";;", "\n", "|", "||", // <- Control operators
+    "<", ">", ">|", "<<", ">>", "<&", ">&", "<<-", "<>", // <- Redirection operators
+];
+
+fn is_start_of_operator(character: char) -> bool {
+    for operator in OPERATORS {
+        if operator.starts_with(character) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+fn is_operator(candidate: &str) -> bool {
+    return OPERATORS.contains(&candidate);
+}
+
 /// Implementation of these ten steps:
 /// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
 fn to_tokens(input: &str) -> Vec<Token> {
@@ -22,6 +47,41 @@ fn to_tokens(input: &str) -> Vec<Token> {
     let mut token_start: usize = 0; // Byte index
 
     for (byteindex, character) in input.char_indices() {
+        if token_start < byteindex {
+            let after_current_token = byteindex + character.len_utf8();
+            let token_with_current = &spanned_input[token_start..after_current_token];
+
+            if is_operator(token_with_current) {
+                // Rule 2, we're building an operator, keep going
+                continue;
+            }
+
+            let token_without_current = &spanned_input[token_start..byteindex];
+            if is_operator(token_without_current) {
+                // Rule 3, we found the end of some operator
+                result.push(Token {
+                    text: spanned_input.slice(token_start..byteindex),
+                    is_comment: false,
+                });
+                token_start = byteindex;
+
+                // Now we just fall through and keep tokenizing the current character
+            }
+        }
+
+        // Rule 6
+        if is_start_of_operator(character) {
+            if token_start < byteindex {
+                // We were inside a token, delimit that
+                result.push(Token {
+                    text: spanned_input.slice(token_start..byteindex),
+                    is_comment: false,
+                });
+            }
+
+            token_start = byteindex;
+        }
+
         // Rule 7
         if character == ' ' {
             if token_start < byteindex {
@@ -81,6 +141,7 @@ fn to_tokens(input: &str) -> Vec<Token> {
 /// * `a` First argument, third, fifth etc...
 /// * `A` Second argument, fourth, sixth etc...
 /// * `c` Comment
+/// * `x` Operator
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let tokens = to_tokens(commandline);
     if tokens.is_empty() {
@@ -155,7 +216,7 @@ mod tests {
     }
 
     /// Returns a vector of commands to be executed given this command line
-    fn parse_into_testrep(commandline: &str) -> (Vec<String>, String) {
+    fn record_execs(commandline: &str) -> (Vec<String>, String) {
         let mut test_executor: TestExecutor = TestExecutor::new();
         let highlights = parse(commandline, &mut test_executor);
 
@@ -165,12 +226,12 @@ mod tests {
     #[test]
     fn test_parse_base() {
         assert_eq!(
-            parse_into_testrep("echo"),
+            record_execs("echo"),
             (vec!["exec('echo')".to_string()], "0000".to_string())
         );
 
         assert_eq!(
-            parse_into_testrep("echo hej"),
+            record_execs("echo hej"),
             (
                 vec!["exec('echo', 'hej')".to_string()],
                 "0000 aaa".to_string()
@@ -178,7 +239,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_into_testrep("echo hej nej"),
+            record_execs("echo hej nej"),
             (
                 vec!["exec('echo', 'hej', 'nej')".to_string()],
                 "0000 aaa AAA".to_string()
@@ -189,7 +250,7 @@ mod tests {
     #[test]
     fn test_parse_utf8() {
         assert_eq!(
-            parse_into_testrep("ödla hår är"),
+            record_execs("ödla hår är"),
             (
                 vec!["exec('ödla', 'hår', 'är')".to_string()],
                 "0000 aaa AA".to_string()
@@ -200,7 +261,7 @@ mod tests {
     #[test]
     fn test_parse_extra_spacing() {
         assert_eq!(
-            parse_into_testrep(" echo  apa   "),
+            record_execs(" echo  apa   "),
             (
                 vec!["exec('echo', 'apa')".to_string()],
                 " 0000  aaa   ".to_string()
@@ -211,7 +272,7 @@ mod tests {
     #[test]
     fn test_comment() {
         assert_eq!(
-            parse_into_testrep("echo apa#"),
+            record_execs("echo apa#"),
             (
                 vec!["exec('echo', 'apa')".to_string()],
                 "0000 aaac".to_string()
@@ -219,11 +280,33 @@ mod tests {
         );
 
         assert_eq!(
-            parse_into_testrep("echo apa #grisar"),
+            record_execs("echo apa #grisar"),
             (
                 vec!["exec('echo', 'apa')".to_string()],
                 "0000 aaa ccccccc".to_string()
             )
+        );
+    }
+
+    fn to_token_strings(commandline: &str) -> Vec<String> {
+        return to_tokens(commandline)
+            .into_iter()
+            .map(|token| token.text.to_string())
+            .collect();
+    }
+
+    #[test]
+    fn test_operator() {
+        assert_eq!(
+            // There is an <<- operator
+            to_token_strings("echo<<--"),
+            vec!["echo", "<<-", "-"]
+        );
+
+        assert_eq!(
+            // There is an <<- operator
+            to_token_strings("echo > foo"),
+            vec!["echo", ">", "foo"]
         );
     }
 }
