@@ -76,6 +76,18 @@ impl<'a> Tokenizer<'a> {
         self.token_start = self.byteindex;
     }
 
+    fn tokenize_backslash_escape(&mut self) {
+        if self.character != '\\' {
+            panic!("Must be at a backslash when calling this method");
+        }
+        if !self.next() {
+            // FIXME: Handle this without panicking
+            panic!("Backslash can't be last during tokenization")
+        }
+
+        // Doing nothing here means we keep building the current token, so let's do nothing!
+    }
+
     /// Fills in Tokenizer.result by following [these ten steps][1].
     ///
     /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
@@ -99,6 +111,12 @@ impl<'a> Tokenizer<'a> {
 
                     // Now we just fall through and keep tokenizing the current character
                 }
+            }
+
+            // Rule 4
+            if self.character == '\\' {
+                self.tokenize_backslash_escape();
+                continue;
             }
 
             // Rule 6
@@ -130,12 +148,10 @@ impl<'a> Tokenizer<'a> {
             // Rule 8, no code needed for this, we're inside a word, just keep
             // iterating over that word.
         }
-        self.byteindex = self.input.len();
 
-        if self.token_start < self.input.len() {
-            // Rule 1
-            self.delimit_token();
-        }
+        // Rule 1
+        self.byteindex = self.input.len();
+        self.delimit_token();
     }
 }
 
@@ -170,4 +186,23 @@ mod tests {
 
         assert_eq!(to_token_strings("echo > foo"), vec!["echo", ">", "foo"]);
     }
+
+    #[test]
+    fn test_backslash_escape() {
+        // Note that "the result token shall contain exactly the characters that
+        // appear in the input", or in other words, the backslashes stay:
+        // https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
+        assert_eq!(to_token_strings(r"echo\ hej"), vec![r"echo\ hej"]);
+        assert_eq!(to_token_strings(r"echo \> hej"), vec!["echo", r"\>", "hej"]);
+        assert_eq!(
+            to_token_strings(r"echo >\> hej"),
+            vec!["echo", ">", r"\>", "hej"]
+        );
+        assert_eq!(to_token_strings(r"echo hej\'"), vec![r"echo", r"hej\'"]);
+
+        // FIXME: Add a test for putting the backslash last, that would be a
+        // tokenization error
+    }
+
+    // FIXME: Add backslash-newline continuation marker test(s)
 }
