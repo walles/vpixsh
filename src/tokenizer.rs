@@ -117,13 +117,11 @@ impl<'a> Tokenizer<'a> {
             // Rule 8, no code needed for this, we're inside a word, just keep
             // iterating over that word.
         }
+        self.byteindex = self.input.len();
 
         if self.token_start < self.input.len() {
             // Rule 1
-            self.result.push(Token {
-                text: self.input.slice(self.token_start..),
-                is_comment: false,
-            });
+            self.delimit_token();
         }
     }
 }
