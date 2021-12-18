@@ -5,7 +5,7 @@
 - [`sh` compatible
   grammar](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_10)
   (unlike `fish`)
-  - No Here-Documents, they make no sense on the commandline
+  - (But no Here-Documents, they make no sense on the commandline)
 - Syntax highlighting at the prompt
 - No scripting support except what's required below, `vpixsh` should be a
   commandline first experience

@@ -14,12 +14,12 @@ pub(crate) trait Executor {
     fn execute(&mut self, command: &str, args: &[String]);
 }
 
-/// [Operators can
-/// be](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_260)
-/// either [control
-/// operators](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_113)
-/// or [redirection
-/// operators](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_318).
+/// [Operators can be][1] either [control operators][2] or [redirection
+/// operators][3].
+///
+/// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_260
+/// [2]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_113
+/// [3]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_318
 static OPERATORS: [&str; 18] = [
     "&", "&&", "(", ")", ";", ";;", "\n", "|", "||", // <- Control operators
     "<", ">", ">|", "<<", ">>", "<&", ">&", "<<-", "<>", // <- Redirection operators
