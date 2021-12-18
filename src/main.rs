@@ -3,6 +3,7 @@
 use crate::parser::{parse, Executor};
 
 mod parser;
+mod tokenizer;
 
 struct SlaskExecutor {}
 
