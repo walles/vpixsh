@@ -1,3 +1,5 @@
+use std::str::CharIndices;
+
 use nom::Slice;
 use nom_locate::LocatedSpan;
 
@@ -36,6 +38,8 @@ struct Tokenizer<'a> {
     result: Vec<Token<'a>>,
     token_start: usize, // Byte index
     byteindex: usize,
+    iterator: CharIndices<'a>,
+    character: char,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -45,7 +49,19 @@ impl<'a> Tokenizer<'a> {
             result: vec![],
             token_start: 0,
             byteindex: 0,
+            iterator: input.char_indices(),
+            character: '\0',
         };
+    }
+
+    fn next(&mut self) -> bool {
+        if let Some((byteindex, character)) = self.iterator.next() {
+            self.byteindex = byteindex;
+            self.character = character;
+            return true;
+        }
+
+        return false;
     }
 
     fn delimit_token(&mut self) {
@@ -64,14 +80,11 @@ impl<'a> Tokenizer<'a> {
     ///
     /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
     fn tokenize(&mut self) {
-        for (bi, character) in self.input.char_indices() {
-            // FIXME: Is there a better way to keep self.byteindex up to date?
-            self.byteindex = bi;
-
+        while self.next() {
             if self.token_start < self.byteindex {
                 // We are building some token
 
-                let after_current_token = self.byteindex + character.len_utf8();
+                let after_current_token = self.byteindex + self.character.len_utf8();
                 let token_with_current = &self.input[self.token_start..after_current_token];
 
                 if is_operator(token_with_current) {
@@ -89,21 +102,21 @@ impl<'a> Tokenizer<'a> {
             }
 
             // Rule 6
-            if is_start_of_operator(character) {
+            if is_start_of_operator(self.character) {
                 self.delimit_token();
             }
 
             // Rule 7
-            if character == ' ' {
+            if self.character == ' ' {
                 self.delimit_token();
 
                 // Rule 10, try starting a new token at the next character
-                self.token_start = self.byteindex + character.len_utf8();
+                self.token_start = self.byteindex + self.character.len_utf8();
                 continue;
             }
 
             // Rule 9
-            if character == '#' {
+            if self.character == '#' {
                 self.delimit_token();
 
                 self.result.push(Token {
