@@ -35,6 +35,7 @@ struct Tokenizer<'a> {
     input: LocatedSpan<&'a str>,
     result: Vec<Token<'a>>,
     token_start: usize, // Byte index
+    byteindex: usize,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -43,16 +44,34 @@ impl<'a> Tokenizer<'a> {
             input: LocatedSpan::new(input),
             result: vec![],
             token_start: 0,
+            byteindex: 0,
         };
+    }
+
+    fn delimit_token(&mut self) {
+        if self.token_start < self.byteindex {
+            // We are building a token, delimit that
+            self.result.push(Token {
+                text: self.input.slice(self.token_start..self.byteindex),
+                is_comment: false,
+            });
+        }
+
+        self.token_start = self.byteindex;
     }
 
     /// Fills in Tokenizer.result by following [these ten steps][1].
     ///
     /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
     fn tokenize(&mut self) {
-        for (byteindex, character) in self.input.char_indices() {
-            if self.token_start < byteindex {
-                let after_current_token = byteindex + character.len_utf8();
+        for (bi, character) in self.input.char_indices() {
+            // FIXME: Is there a better way to keep self.byteindex up to date?
+            self.byteindex = bi;
+
+            if self.token_start < self.byteindex {
+                // We are building some token
+
+                let after_current_token = self.byteindex + character.len_utf8();
                 let token_with_current = &self.input[self.token_start..after_current_token];
 
                 if is_operator(token_with_current) {
@@ -60,14 +79,10 @@ impl<'a> Tokenizer<'a> {
                     continue;
                 }
 
-                let token_without_current = &self.input[self.token_start..byteindex];
+                let token_without_current = &self.input[self.token_start..self.byteindex];
                 if is_operator(token_without_current) {
                     // Rule 3, we found the end of some operator
-                    self.result.push(Token {
-                        text: self.input.slice(self.token_start..byteindex),
-                        is_comment: false,
-                    });
-                    self.token_start = byteindex;
+                    self.delimit_token();
 
                     // Now we just fall through and keep tokenizing the current character
                 }
@@ -75,55 +90,32 @@ impl<'a> Tokenizer<'a> {
 
             // Rule 6
             if is_start_of_operator(character) {
-                if self.token_start < byteindex {
-                    // We were inside a token, delimit that
-                    self.result.push(Token {
-                        text: self.input.slice(self.token_start..byteindex),
-                        is_comment: false,
-                    });
-                }
-
-                self.token_start = byteindex;
+                self.delimit_token();
             }
 
             // Rule 7
             if character == ' ' {
-                if self.token_start < byteindex {
-                    // We were inside a token
-                    self.result.push(Token {
-                        text: self.input.slice(self.token_start..byteindex),
-                        is_comment: false,
-                    });
-                }
+                self.delimit_token();
 
                 // Rule 10, try starting a new token at the next character
-                self.token_start = byteindex + character.len_utf8();
+                self.token_start = self.byteindex + character.len_utf8();
                 continue;
             }
 
             // Rule 9
             if character == '#' {
-                if self.token_start < byteindex {
-                    // We were in the middle of something, push it!
-                    self.result.push(Token {
-                        text: self.input.slice(self.token_start..byteindex),
-                        is_comment: false,
-                    });
-                }
+                self.delimit_token();
 
                 self.result.push(Token {
-                    text: self.input.slice(byteindex..),
+                    text: self.input.slice(self.byteindex..),
                     is_comment: true,
                 });
 
                 return;
             }
 
-            // Rule 8
-            if self.token_start <= byteindex {
-                // We're inside a word, just keep iterating over that word
-                continue;
-            }
+            // Rule 8, no code needed for this, we're inside a word, just keep
+            // iterating over that word.
         }
 
         if self.token_start < self.input.len() {
