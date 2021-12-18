@@ -16,7 +16,8 @@ pub(crate) trait Executor {
 
 /// Implementation of these ten steps:
 /// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
+fn to_tokens(input: &str) -> Vec<Token> {
+    let spanned_input = LocatedSpan::new(input);
     let mut result: Vec<Token> = vec![];
     let mut token_start: usize = 0; // Byte index
 
@@ -26,7 +27,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
             if token_start < byteindex {
                 // We were inside a token
                 result.push(Token {
-                    text: input.slice(token_start..byteindex),
+                    text: spanned_input.slice(token_start..byteindex),
                     is_comment: false,
                 });
             }
@@ -41,13 +42,13 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
             if token_start < byteindex {
                 // We were in the middle of something, push it!
                 result.push(Token {
-                    text: input.slice(token_start..byteindex),
+                    text: spanned_input.slice(token_start..byteindex),
                     is_comment: false,
                 });
             }
 
             result.push(Token {
-                text: input.slice(byteindex..),
+                text: spanned_input.slice(byteindex..),
                 is_comment: true,
             });
 
@@ -64,7 +65,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
     if token_start < input.len() {
         // Rule 1
         result.push(Token {
-            text: input.slice(token_start..),
+            text: spanned_input.slice(token_start..),
             is_comment: false,
         });
     }
@@ -81,8 +82,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
 /// * `A` Second argument, fourth, sixth etc...
 /// * `c` Comment
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let spanned_commandline = LocatedSpan::new(commandline);
-    let tokens = string_to_tokens(&spanned_commandline);
+    let tokens = to_tokens(commandline);
     if tokens.is_empty() {
         return " ".repeat(commandline.len());
     }
