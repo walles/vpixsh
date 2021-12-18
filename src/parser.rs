@@ -1,13 +1,9 @@
 use nom::Slice;
 use nom_locate::LocatedSpan;
 
-enum TokenKind {
-    Word,
-    Comment,
-}
 struct Token<'a> {
     text: LocatedSpan<&'a str, ()>,
-    kind: TokenKind,
+    is_comment: bool,
 }
 
 pub(crate) trait Executor {
@@ -31,9 +27,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
                 // We were inside a token
                 result.push(Token {
                     text: input.slice(token_start..byteindex),
-
-                    // FIXME: How can we know this is a word? Add tests!
-                    kind: TokenKind::Word,
+                    is_comment: false,
                 });
             }
 
@@ -48,15 +42,13 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
                 // We were in the middle of something, push it!
                 result.push(Token {
                     text: input.slice(token_start..byteindex),
-
-                    // FIXME: How can we know this is a word? Add tests!
-                    kind: TokenKind::Word,
+                    is_comment: false,
                 });
             }
 
             result.push(Token {
                 text: input.slice(byteindex..),
-                kind: TokenKind::Comment,
+                is_comment: true,
             });
 
             return result;
@@ -73,9 +65,7 @@ fn string_to_tokens<'a>(input: &'a LocatedSpan<&'a str, ()>) -> Vec<Token<'a>> {
         // Rule 1
         result.push(Token {
             text: input.slice(token_start..),
-
-            // FIXME: How can we know this is a word? Add tests!
-            kind: TokenKind::Word,
+            is_comment: false,
         });
     }
 
@@ -99,7 +89,7 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
 
     let mut words: Vec<String> = Vec::new();
     for token in &tokens {
-        if let TokenKind::Word = token.kind {
+        if !token.is_comment {
             words.push(token.text.to_string())
         }
     }
@@ -109,18 +99,18 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
     let mut word_index: usize = 0;
     for token in tokens.iter() {
         let highlighting_code: u8;
-        match token.kind {
-            TokenKind::Word => {
-                if word_index == 0 {
-                    highlighting_code = b'0';
-                } else if word_index % 2 == 1 {
-                    highlighting_code = b'a';
-                } else {
-                    highlighting_code = b'A';
-                }
-                word_index += 1;
+        if token.is_comment {
+            highlighting_code = b'c';
+        } else {
+            // This is a word, not a comment
+            if word_index == 0 {
+                highlighting_code = b'0';
+            } else if word_index % 2 == 1 {
+                highlighting_code = b'a';
+            } else {
+                highlighting_code = b'A';
             }
-            TokenKind::Comment => highlighting_code = b'c',
+            word_index += 1;
         }
 
         let first_char_index = token.text.get_utf8_column() - 1;
