@@ -3,13 +3,13 @@ use std::str::CharIndices;
 use nom::Slice;
 use nom_locate::LocatedSpan;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Token<'a> {
     pub text: LocatedSpan<&'a str, ()>,
     pub is_comment: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct TokenizerError<'a> {
     token: Token<'a>,
     message: String,
@@ -83,17 +83,26 @@ impl<'a> Tokenizer<'a> {
         self.token_start = self.byteindex;
     }
 
+    /// Ref:
+    /// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_02_01
+    ///
+    /// This function returns `Some(Err(TokenizerError{...}))` on failure, `None`
+    /// otherwise.
     #[must_use]
-    fn tokenize_backslash_escape(&mut self) -> Option<TokenizerError> {
+    fn tokenize_backslash_escape(&mut self) -> Option<Result<Vec<Token<'a>>, TokenizerError<'a>>> {
         if self.character != '\\' {
             panic!("Must be at a backslash when calling this method");
         }
         if !self.next() {
-            self.delimit_token();
-            return Some(TokenizerError {
-                token: *self.result.last().unwrap(),
-                message: "Backslash can't be last during tokenization".to_string(),
-            });
+            return Some(Err(TokenizerError {
+                token: Token {
+                    text: self.input.slice(self.byteindex..),
+                    is_comment: false,
+                },
+                message:
+                    "Backslash can't be last, remove the backslash or add more characters after it"
+                        .to_string(),
+            }));
         }
 
         // Doing nothing here means we keep building the current token, so let's do nothing!
@@ -103,7 +112,6 @@ impl<'a> Tokenizer<'a> {
     /// Fills in Tokenizer.result by following [these ten steps][1].
     ///
     /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-    #[must_use]
     fn tokenize(mut self) -> Result<Vec<Token<'a>>, TokenizerError<'a>> {
         while self.next() {
             if self.token_start < self.byteindex {
@@ -128,7 +136,9 @@ impl<'a> Tokenizer<'a> {
 
             // Rule 4
             if self.character == '\\' {
-                self.tokenize_backslash_escape();
+                if let Some(error) = self.tokenize_backslash_escape() {
+                    return error;
+                }
                 continue;
             }
 
@@ -201,6 +211,31 @@ mod tests {
         assert_eq!(to_token_strings("echo > foo"), vec!["echo", ">", "foo"]);
     }
 
+    fn assert_parse_error(
+        commandline: &str,
+        failed_part: &str,
+        failed_offset: usize,
+        message: &str,
+    ) {
+        let error = to_tokens(commandline).unwrap_err();
+
+        unsafe {
+            let expected_span: LocatedSpan<&str, ()> =
+                LocatedSpan::new_from_raw_offset(failed_offset, 1, failed_part, ());
+
+            assert_eq!(
+                error,
+                TokenizerError {
+                    token: Token {
+                        text: expected_span,
+                        is_comment: false,
+                    },
+                    message: message.to_string(),
+                }
+            );
+        }
+    }
+
     #[test]
     fn test_backslash_escape() {
         // Note that "the result token shall contain exactly the characters that
@@ -214,8 +249,12 @@ mod tests {
         );
         assert_eq!(to_token_strings(r"echo hej\'"), vec![r"echo", r"hej\'"]);
 
-        // FIXME: Add a test for putting the backslash last, that would be a
-        // tokenization error
+        assert_parse_error(
+            r"apa\",
+            r"\",
+            3,
+            "Backslash can't be last, remove the backslash or add more characters after it",
+        );
     }
 
     // FIXME: Add backslash-newline continuation marker test(s)
