@@ -18,7 +18,7 @@ pub(crate) trait Executor {
 /// * `c` Comment
 /// * `x` Operator
 pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let tokens = to_tokens(commandline);
+    let tokens = to_tokens(commandline).unwrap();
     if tokens.is_empty() {
         return " ".repeat(commandline.len());
     }

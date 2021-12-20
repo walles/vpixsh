@@ -3,9 +3,16 @@ use std::str::CharIndices;
 use nom::Slice;
 use nom_locate::LocatedSpan;
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Token<'a> {
     pub text: LocatedSpan<&'a str, ()>,
     pub is_comment: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct TokenizerError<'a> {
+    token: Token<'a>,
+    message: String,
 }
 
 /// [Operators can be][1] either [control operators][2] or [redirection
@@ -76,22 +83,28 @@ impl<'a> Tokenizer<'a> {
         self.token_start = self.byteindex;
     }
 
-    fn tokenize_backslash_escape(&mut self) {
+    #[must_use]
+    fn tokenize_backslash_escape(&mut self) -> Option<TokenizerError> {
         if self.character != '\\' {
             panic!("Must be at a backslash when calling this method");
         }
         if !self.next() {
-            // FIXME: Handle this without panicking
-            panic!("Backslash can't be last during tokenization")
+            self.delimit_token();
+            return Some(TokenizerError {
+                token: *self.result.last().unwrap(),
+                message: "Backslash can't be last during tokenization".to_string(),
+            });
         }
 
         // Doing nothing here means we keep building the current token, so let's do nothing!
+        return None;
     }
 
     /// Fills in Tokenizer.result by following [these ten steps][1].
     ///
     /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-    fn tokenize(&mut self) {
+    #[must_use]
+    fn tokenize(mut self) -> Result<Vec<Token<'a>>, TokenizerError<'a>> {
         while self.next() {
             if self.token_start < self.byteindex {
                 // We are building some token
@@ -142,7 +155,7 @@ impl<'a> Tokenizer<'a> {
                     is_comment: true,
                 });
 
-                return;
+                return Ok(self.result);
             }
 
             // Rule 8, no code needed for this, we're inside a word, just keep
@@ -152,16 +165,16 @@ impl<'a> Tokenizer<'a> {
         // Rule 1
         self.byteindex = self.input.len();
         self.delimit_token();
+
+        return Ok(self.result);
     }
 }
 
 /// Implementation of [these ten steps][1]:
 ///
 /// [1]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-pub(crate) fn to_tokens(input: &str) -> Vec<Token> {
-    let mut tokenizer = Tokenizer::new(input);
-    tokenizer.tokenize();
-    return tokenizer.result;
+pub(crate) fn to_tokens(input: &str) -> Result<Vec<Token>, TokenizerError> {
+    return Tokenizer::new(input).tokenize();
 }
 
 #[cfg(test)]
@@ -171,6 +184,7 @@ mod tests {
 
     fn to_token_strings(commandline: &str) -> Vec<String> {
         return to_tokens(commandline)
+            .unwrap()
             .into_iter()
             .map(|token| token.text.to_string())
             .collect();
