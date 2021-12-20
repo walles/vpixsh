@@ -42,11 +42,18 @@ fn is_operator(candidate: &str) -> bool {
 
 struct Tokenizer<'a> {
     input: LocatedSpan<&'a str>,
-    result: Vec<Token<'a>>,
-    token_start: usize, // Byte index
-    byteindex: usize,
     iterator: CharIndices<'a>,
+
+    /// Byte index of where the token we're currently in starts
+    token_start: usize,
+
+    /// Byte index where we're currently at, updated in `next()`
+    byteindex: usize,
+
+    /// Character we're currently at, updated in `next()`
     character: char,
+
+    result: Vec<Token<'a>>,
 }
 
 impl<'a> Tokenizer<'a> {

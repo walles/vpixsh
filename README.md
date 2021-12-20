@@ -22,6 +22,9 @@
   - Prompt should now show the `(env)` prefix
   - Some `pip install` invocation
   - `deactivate`
+- Consider whether we should be able to use `bash` command completions. This
+  probably scales better than trying to roll our own, no matter how automated we
+  can make that.
 - Configuration in `~/.vpixsh/config.yaml`
   - Default environment variables
   - `$PATH` value
