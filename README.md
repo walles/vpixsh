@@ -44,19 +44,11 @@ Do `cargo test` to run the test suite.
 
 ## TODO
 
-### Before the shell can be used at all
-
-- Main loop:
-  - DONE: Print prompt
-  - DONE: Read command line
-  - DONE: Parse the command line we just read
-  - Execute the command line
-
 ### Before Johan can use it as his default shell
 
-- Print `^^^` markers pointing out any parse errors
-- `cd` support
 - Basic prompt with path and a `$`
+- `cd` support
+- Print `^^^` markers pointing out any parse errors
 - Command line editing
 - History collection
 - Suggestions from history
@@ -86,3 +78,8 @@ Do `cargo test` to run the test suite.
 ### DONE
 
 - Support for ctrl-d to exit
+- Main loop:
+  - Print prompt
+  - Read command line
+  - Parse the command line we just read
+  - Execute the command line

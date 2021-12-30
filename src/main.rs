@@ -1,23 +1,41 @@
 #![allow(clippy::needless_return)]
 
 use std::io::{self, BufRead, Write};
+use std::process::Command;
 
 use crate::parser::{parse, Executor};
 
 mod parser;
 mod tokenizer;
 
-struct PrintExecutor {}
+struct ExecExecutor {}
 
-impl Executor for PrintExecutor {
+impl Executor for ExecExecutor {
     fn execute(&mut self, command: &str, args: &[String]) {
         let mut command_with_args = vec![command.to_string()];
+        let mut command = Command::new(command);
 
         for arg in args {
             command_with_args.push(arg.to_string());
+            command.arg(arg);
         }
 
-        println!("exec('{}')", command_with_args.join("', '"));
+        println!("About to do: exec('{}')", command_with_args.join("', '"));
+        let exec_result = command.spawn();
+        if let Err(error) = exec_result {
+            println!("exec() failed: {}", error);
+            return;
+        }
+
+        let mut child = exec_result.unwrap();
+        let wait_result = child.wait();
+        if let Err(error) = wait_result {
+            println!("Awaiting child process failed: {}", error);
+            return;
+        }
+
+        let exit_status = wait_result.unwrap();
+        println!("Exit status: {}", exit_status);
     }
 }
 
@@ -49,7 +67,7 @@ fn main() {
         // that error could be, let's fix that when it happens!
         let line = maybe_line.unwrap().unwrap();
 
-        if let Err(error) = parse(&line, &mut PrintExecutor {}) {
+        if let Err(error) = parse(&line, &mut ExecExecutor {}) {
             println!("Parse error: {}", error);
         }
     }
