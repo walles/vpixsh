@@ -1,9 +1,9 @@
 #![allow(clippy::needless_return)]
 
-use std::env;
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, fs};
 
 use crate::parser::{parse, Executor};
 
@@ -95,6 +95,15 @@ impl Shell {
             return;
         }
         target_path = canonicalize_result.unwrap();
+
+        if let Err(error) = fs::read_dir(target_path.to_owned()) {
+            println!(
+                "Target directory <{}> is inaccessible: {}",
+                target_path.to_string_lossy(),
+                error
+            );
+            return;
+        }
 
         self.current_dir = target_path;
     }
