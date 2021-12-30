@@ -2,7 +2,7 @@
 
 use std::env;
 use std::io::{self, BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::parser::{parse, Executor};
@@ -77,17 +77,20 @@ impl Shell {
 
         let target = &args[0];
 
-        // FIXME: Go to previous directory if first arg is "-"
+        // FIXME: Go to previous directory if "target" is "-"
 
-        // FIXME: If the requested directory is relative, prefix it with
-        // self.current_dir
+        let mut target_path = PathBuf::from(&self.current_dir);
 
-        if !Path::new(target).is_dir() {
+        // Pushing resolves absolute paths
+        target_path.push(Path::new(target));
+
+        if !target_path.is_dir() {
             println!("Not a directory: {}", target);
             return;
         }
 
-        self.current_dir = target.to_owned();
+        // NOTE: If the target path isn't UTF-8 this won't work
+        self.current_dir = target_path.to_string_lossy().to_string();
     }
 }
 
@@ -109,6 +112,7 @@ impl Executor for Shell {
         }
 
         println!("About to do: exec('{}')", command_with_args.join("', '"));
+        // FIXME: Verify that spawn() honors the $PATH
         let exec_result = command.spawn();
         if let Err(error) = exec_result {
             println!("exec() failed: {}", error);
