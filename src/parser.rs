@@ -1,4 +1,4 @@
-use crate::tokenizer::to_tokens;
+use crate::tokenizer::{to_tokens, TokenizerError};
 
 pub(crate) trait Executor {
     /// command is the binary to executs
@@ -17,10 +17,18 @@ pub(crate) trait Executor {
 /// * `A` Second argument, fourth, sixth etc...
 /// * `c` Comment
 /// * `x` Operator
-pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
-    let tokens = to_tokens(commandline).unwrap();
+pub(crate) fn parse<'a>(
+    commandline: &'a str,
+    executor: &'a mut dyn Executor,
+) -> Result<String, TokenizerError<'a>> {
+    let tokens_result = to_tokens(commandline);
+    if let Err(error) = tokens_result {
+        return Err(error);
+    }
+
+    let tokens = tokens_result.unwrap();
     if tokens.is_empty() {
-        return " ".repeat(commandline.len());
+        return Ok(" ".repeat(commandline.len()));
     }
 
     let mut words: Vec<String> = Vec::new();
@@ -57,7 +65,7 @@ pub(crate) fn parse(commandline: &str, executor: &mut dyn Executor) -> String {
         }
     }
 
-    return String::from_utf8(highlights).unwrap();
+    return Ok(String::from_utf8(highlights).unwrap());
 }
 
 #[cfg(test)]
@@ -93,7 +101,7 @@ mod tests {
     /// Returns a vector of commands to be executed given this command line
     fn record_execs(commandline: &str) -> (Vec<String>, String) {
         let mut test_executor: TestExecutor = TestExecutor::new();
-        let highlights = parse(commandline, &mut test_executor);
+        let highlights = parse(commandline, &mut test_executor).unwrap();
 
         return (test_executor.executions, highlights);
     }

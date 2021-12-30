@@ -7,9 +7,9 @@ use crate::parser::{parse, Executor};
 mod parser;
 mod tokenizer;
 
-struct SlaskExecutor {}
+struct PrintExecutor {}
 
-impl Executor for SlaskExecutor {
+impl Executor for PrintExecutor {
     fn execute(&mut self, command: &str, args: &[String]) {
         let mut command_with_args = vec![command.to_string()];
 
@@ -22,12 +22,9 @@ impl Executor for SlaskExecutor {
 }
 
 fn main() {
-    // FIXME: Remove: For now, this call is here to get rid of some unused-code
-    // warnings
-    parse("echo hello world", &mut SlaskExecutor {});
-
     loop {
         // FIXME: Print a usable prompt
+        println!();
         println!("/current/path/goes/here");
 
         // FIXME: Should be # if we're root
@@ -48,6 +45,12 @@ fn main() {
             break;
         }
 
-        todo!("Command parsing / executing");
+        // FIXME: Second unwrap is of a Result<String, Error>. I don't know what
+        // that error could be, let's fix that when it happens!
+        let line = maybe_line.unwrap().unwrap();
+
+        if let Err(error) = parse(&line, &mut PrintExecutor {}) {
+            println!("Parse error: {}", error);
+        }
     }
 }

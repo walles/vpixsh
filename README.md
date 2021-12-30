@@ -49,11 +49,12 @@ Do `cargo test` to run the test suite.
 - Main loop:
   - DONE: Print prompt
   - DONE: Read command line
-  - Parse the command line we just read
+  - DONE: Parse the command line we just read
   - Execute the command line
 
 ### Before Johan can use it as his default shell
 
+- Print `^^^` markers pointing out any parse errors
 - `cd` support
 - Basic prompt with path and a `$`
 - Command line editing

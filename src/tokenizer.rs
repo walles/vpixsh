@@ -1,4 +1,4 @@
-use std::str::CharIndices;
+use std::{fmt::Display, str::CharIndices};
 
 use nom::Slice;
 use nom_locate::LocatedSpan;
@@ -13,6 +13,12 @@ pub(crate) struct Token<'a> {
 pub(crate) struct TokenizerError<'a> {
     token: Token<'a>,
     message: String,
+}
+
+impl<'a> Display for TokenizerError<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}\n{}", "FIXME", self.message))
+    }
 }
 
 /// [Operators can be][1] either [control operators][2] or [redirection
