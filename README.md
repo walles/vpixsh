@@ -44,5 +44,40 @@ Do `cargo test` to run the test suite.
 
 ## TODO
 
-- `bash` compatible command line parser
-- Use `vpixsh` as my default shell
+### Before the shell can be used at all
+
+- Main loop:
+  - Print prompt
+  - Read command line
+  - Parse the command line we just read
+  - Execute the command line
+- Support for `exit` command
+- Support for ctrl-d to exit
+
+### Before Johan can use it as his default shell
+
+- `cd` support
+- Basic prompt with path and a `$`
+- Command line editing
+- History collection
+- Suggestions from history
+- Arrow up to go back in history
+- Smart completion
+- Syntax highlighted command line
+- Informative VCS prompt
+- Pipes
+- Handle ctrl-c as expected
+
+### Before others can use it
+
+- Print useful error diagnostics on command line parse errors
+- Print a report-errors-here message on crashes and on startup
+- Job control, backgrounding things with ctrl-z or `&`, `fg`, `bg`, `jobs`
+
+### Misc
+
+- Complete `tokenizer.rs` with support for all kinds of quoting
+- Fully `bash` compatible command line parser
+- Print hints on `cd` so we know where we're going on `cd ../..`
+- Smart history search using `fzf` (or whatever)
+- `shellcheck` command lines and show as-you-type hints

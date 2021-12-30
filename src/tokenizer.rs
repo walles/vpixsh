@@ -265,4 +265,10 @@ mod tests {
     }
 
     // FIXME: Add backslash-newline continuation marker test(s)
+
+    // FIXME: Write tests for all the quoting rules (step 4):
+    // https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
+
+    // FIXME: Write expansion / substitution (step 5) tests:
+    // https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
 }
