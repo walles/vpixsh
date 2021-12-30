@@ -46,12 +46,6 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- `cd` support
-  - DONE: Prompt should change after `cd`
-  - DONE: Spawned processes should get new CWDs after `cd`
-  - DONE: `cd` should handle relative directories
-  - DONE: `cd ..` should go one notch up, not add `..` to the current path
-  - `cd -` should go back to the previous directory
 - Print `^^^` markers pointing out any parse errors
 - Command line editing
 - Show most recent exit code in the prompt
@@ -90,3 +84,9 @@ Do `cargo test` to run the test suite.
   - Parse the command line we just read
   - Execute the command line
 - Basic prompt with path and a `$`
+- `cd` support
+  - Prompt should change after `cd`
+  - Spawned processes should get new CWDs after `cd`
+  - `cd` should handle relative directories
+  - `cd ..` should go one notch up, not add `..` to the current path
+  - `cd -` should go back to the previous directory

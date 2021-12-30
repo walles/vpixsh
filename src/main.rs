@@ -12,6 +12,7 @@ mod tokenizer;
 
 struct Shell {
     current_dir: PathBuf,
+    oldpwd: PathBuf,
 }
 
 impl Shell {
@@ -26,7 +27,10 @@ impl Shell {
             current_dir = current_dir_result.unwrap();
         }
 
-        return Shell { current_dir };
+        return Shell {
+            current_dir: current_dir.to_owned(),
+            oldpwd: current_dir,
+        };
     }
 
     fn run(&mut self) {
@@ -73,7 +77,12 @@ impl Shell {
 
         let target = &args[0];
 
-        // FIXME: Go to previous directory if "target" is "-"
+        if target == "-" {
+            let temp = self.current_dir.to_owned();
+            self.current_dir = self.oldpwd.to_owned();
+            self.oldpwd = temp;
+            return;
+        }
 
         let mut target_path = PathBuf::from(&self.current_dir);
 
