@@ -5,8 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
+use crate::ansicolor::green;
 use crate::parser::{parse, Executor};
 
+mod ansicolor;
 mod parser;
 mod tokenizer;
 
@@ -37,7 +39,7 @@ impl Shell {
         loop {
             // FIXME: Print a colorful prompt with VCS info when available
             println!();
-            println!("{}", self.current_dir.to_string_lossy());
+            println!("{}", green(&self.current_dir.to_string_lossy()));
 
             // FIXME: Should be # if we're root
             print!("$ ");

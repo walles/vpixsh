@@ -46,21 +46,22 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- Print `^^^` markers pointing out any parse errors
+- If failing, show most recent exit code in the prompt
 - Command line editing
-- Show most recent exit code in the prompt
-- Typing just a directory name should `cd` into that directory
 - History collection
 - Suggestions from history
 - Arrow up to go back in history
+- Basic completion of binaries, and arg file names
 - Smart completion
 - Syntax highlighted command line
 - Informative VCS prompt
 - Pipes
 - Handle ctrl-c as expected
+- Typing just a directory name should `cd` into that directory
 
 ### Before others can use it
 
+- Print `^^^` markers pointing out any parse errors
 - Support for `exit` command
 - Print useful error diagnostics on command line parse errors
 - Print a report-errors-here message on crashes and on startup
@@ -90,3 +91,4 @@ Do `cargo test` to run the test suite.
   - `cd` should handle relative directories
   - `cd ..` should go one notch up, not add `..` to the current path
   - `cd -` should go back to the previous directory
+- Print prompt in green (same as `fish`)
