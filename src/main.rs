@@ -9,12 +9,70 @@ use crate::parser::{parse, Executor};
 mod parser;
 mod tokenizer;
 
-struct ExecExecutor {}
+struct Shell {
+    current_dir: String,
+}
 
-impl Executor for ExecExecutor {
-    fn execute(&mut self, command: &str, args: &[String]) {
-        let mut command_with_args = vec![command.to_string()];
-        let mut command = Command::new(command);
+impl Shell {
+    fn new() -> Self {
+        let current_dir: String;
+        let current_dir_result = env::current_dir();
+        if let Err(error) = current_dir_result {
+            current_dir = format!("Failed getting current directory: {}", error);
+        } else {
+            // Ref: https://stackoverflow.com/a/42579588/473672
+            current_dir = current_dir_result
+                .unwrap()
+                .into_os_string()
+                .into_string()
+                // FIXME: Will fail if path is not UTF-8
+                .unwrap();
+        }
+
+        return Shell { current_dir };
+    }
+
+    fn run(&mut self) {
+        loop {
+            // FIXME: Print a colorful prompt with VCS info when available
+            println!();
+            println!("{}", self.current_dir);
+
+            // FIXME: Should be # if we're root
+            print!("$ ");
+
+            // Flush our prompt so the user can see it, necessary since the prompt
+            // doesn't end with a newline
+            if let Err(error) = io::stdout().flush() {
+                panic!("{}", error)
+            }
+
+            // Read a line from stdin
+            // Ref: https://stackoverflow.com/a/30186553/473672
+            let maybe_line = io::stdin().lock().lines().next();
+            if maybe_line.is_none() {
+                // EOF, seeya!
+                println!();
+                break;
+            }
+
+            // FIXME: Second unwrap is of a Result<String, Error>. I don't know what
+            // that error could be, let's fix that when it happens!
+            let line = maybe_line.unwrap().unwrap();
+
+            if let Err(error) = parse(&line, self) {
+                println!("Parse error: {}", error);
+            }
+        }
+    }
+}
+
+impl Executor for Shell {
+    fn execute(&mut self, executable: &str, args: &[String]) {
+        let mut command_with_args = vec![executable.to_string()];
+
+        let mut command = Command::new(executable);
+        command.current_dir(self.current_dir.to_owned());
 
         for arg in args {
             command_with_args.push(arg.to_string());
@@ -41,49 +99,6 @@ impl Executor for ExecExecutor {
 }
 
 fn main() {
-    let current_dir: String;
-    let current_dir_result = env::current_dir();
-    if let Err(error) = current_dir_result {
-        current_dir = format!("Failed getting current directory: {}", error);
-    } else {
-        // Ref: https://stackoverflow.com/a/42579588/473672
-        current_dir = current_dir_result
-            .unwrap()
-            .into_os_string()
-            .into_string()
-            // FIXME: Will fail if path is not UTF-8
-            .unwrap();
-    }
-
-    loop {
-        // FIXME: Print a usable prompt
-        println!();
-        println!("{}", current_dir);
-
-        // FIXME: Should be # if we're root
-        print!("$ ");
-
-        // Flush our prompt so the user can see it, necessary since the prompt
-        // doesn't end with a newline
-        if let Err(error) = io::stdout().flush() {
-            panic!("{}", error)
-        }
-
-        // Read a line from stdin
-        // Ref: https://stackoverflow.com/a/30186553/473672
-        let maybe_line = io::stdin().lock().lines().next();
-        if maybe_line.is_none() {
-            // EOF, seeya!
-            println!();
-            break;
-        }
-
-        // FIXME: Second unwrap is of a Result<String, Error>. I don't know what
-        // that error could be, let's fix that when it happens!
-        let line = maybe_line.unwrap().unwrap();
-
-        if let Err(error) = parse(&line, &mut ExecExecutor {}) {
-            println!("Parse error: {}", error);
-        }
-    }
+    let mut shell = Shell::new();
+    shell.run();
 }
