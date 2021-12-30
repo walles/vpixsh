@@ -50,7 +50,8 @@ Do `cargo test` to run the test suite.
   - DONE: Prompt should change after `cd`
   - DONE: Spawned processes should get new CWDs after `cd`
   - DONE: `cd` should handle relative directories
-  - `cd ..` should go one notch up, not add `..` to the current path
+  - DONE: `cd ..` should go one notch up, not add `..` to the current path
+  - `cd -` should go back to the previous directory
 - Print `^^^` markers pointing out any parse errors
 - Command line editing
 - Show most recent exit code in the prompt

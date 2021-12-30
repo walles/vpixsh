@@ -85,6 +85,17 @@ impl Shell {
             return;
         }
 
+        let canonicalize_result = target_path.canonicalize();
+        if let Err(error) = canonicalize_result {
+            println!(
+                "Unable to canonicalize <{}>: {}",
+                target_path.to_string_lossy(),
+                error
+            );
+            return;
+        }
+        target_path = canonicalize_result.unwrap();
+
         self.current_dir = target_path;
     }
 }
