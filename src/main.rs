@@ -68,10 +68,18 @@ impl Shell {
     }
 
     fn cd(&mut self, args: &[String]) {
-        // FIXME: Go to home directory on zero args
+        if args.is_empty() {
+            let env_home = env::var("HOME");
+            if let Err(error) = env_home {
+                println!("ERROR: Cannot read HOME environment variable: {}", error);
+                return;
+            }
+            self.cd(&[env_home.unwrap()]);
+            return;
+        }
 
         if args.len() != 1 {
-            println!("cd wanted one argument, got {}", args.len());
+            println!("ERROR: cd wanted zero or one argument, got {}", args.len());
             return;
         }
 
@@ -90,14 +98,14 @@ impl Shell {
         target_path.push(Path::new(target));
 
         if !target_path.is_dir() {
-            println!("Not a directory: {}", target);
+            println!("ERROR: Not a directory: {}", target);
             return;
         }
 
         let canonicalize_result = target_path.canonicalize();
         if let Err(error) = canonicalize_result {
             println!(
-                "Unable to canonicalize <{}>: {}",
+                "ERROR: Unable to canonicalize <{}>: {}",
                 target_path.to_string_lossy(),
                 error
             );
@@ -107,13 +115,14 @@ impl Shell {
 
         if let Err(error) = fs::read_dir(target_path.to_owned()) {
             println!(
-                "Target directory <{}> is inaccessible: {}",
+                "ERROR: Target directory <{}> is inaccessible: {}",
                 target_path.to_string_lossy(),
                 error
             );
             return;
         }
 
+        self.oldpwd = self.current_dir.to_owned();
         self.current_dir = target_path;
     }
 }
