@@ -2,6 +2,7 @@
 
 use std::env;
 use std::io::{self, BufRead, Write};
+use std::path::Path;
 use std::process::Command;
 
 use crate::parser::{parse, Executor};
@@ -65,6 +66,29 @@ impl Shell {
             }
         }
     }
+
+    fn cd(&mut self, args: &[String]) {
+        // FIXME: Go to home directory on zero args
+
+        if args.len() != 1 {
+            println!("cd wanted one argument, got {}", args.len());
+            return;
+        }
+
+        let target = &args[0];
+
+        // FIXME: Go to previous directory if first arg is "-"
+
+        // FIXME: If the requested directory is relative, prefix it with
+        // self.current_dir
+
+        if !Path::new(target).is_dir() {
+            println!("Not a directory: {}", target);
+            return;
+        }
+
+        self.current_dir = target.to_owned();
+    }
 }
 
 impl Executor for Shell {
@@ -77,6 +101,11 @@ impl Executor for Shell {
         for arg in args {
             command_with_args.push(arg.to_string());
             command.arg(arg);
+        }
+
+        if executable == "cd" {
+            self.cd(args);
+            return;
         }
 
         println!("About to do: exec('{}')", command_with_args.join("', '"));

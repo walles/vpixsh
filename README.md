@@ -47,8 +47,9 @@ Do `cargo test` to run the test suite.
 ### Before Johan can use it as his default shell
 
 - `cd` support
-  - Prompt should change after `cd`
-  - Spawned processes should get new CWDs after `cd`
+  - DONE: Prompt should change after `cd`
+  - DONE: Spawned processes should get new CWDs after `cd`
+  - `cd` should handle relative directories
 - Print `^^^` markers pointing out any parse errors
 - Command line editing
 - History collection
