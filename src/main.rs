@@ -11,23 +11,19 @@ mod parser;
 mod tokenizer;
 
 struct Shell {
-    current_dir: String,
+    current_dir: PathBuf,
 }
 
 impl Shell {
     fn new() -> Self {
-        let current_dir: String;
+        let mut current_dir = PathBuf::new();
         let current_dir_result = env::current_dir();
         if let Err(error) = current_dir_result {
-            current_dir = format!("Failed getting current directory: {}", error);
+            // Just leave the current_dir empty
+            println!("ERROR: Failed getting current directory: {}", error);
         } else {
             // Ref: https://stackoverflow.com/a/42579588/473672
-            current_dir = current_dir_result
-                .unwrap()
-                .into_os_string()
-                .into_string()
-                // FIXME: Will fail if path is not UTF-8
-                .unwrap();
+            current_dir = current_dir_result.unwrap();
         }
 
         return Shell { current_dir };
@@ -37,7 +33,7 @@ impl Shell {
         loop {
             // FIXME: Print a colorful prompt with VCS info when available
             println!();
-            println!("{}", self.current_dir);
+            println!("{}", self.current_dir.to_string_lossy());
 
             // FIXME: Should be # if we're root
             print!("$ ");
@@ -89,8 +85,7 @@ impl Shell {
             return;
         }
 
-        // NOTE: If the target path isn't UTF-8 this won't work
-        self.current_dir = target_path.to_string_lossy().to_string();
+        self.current_dir = target_path;
     }
 }
 
