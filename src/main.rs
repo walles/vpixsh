@@ -1,5 +1,6 @@
 #![allow(clippy::needless_return)]
 
+use std::env;
 use std::io::{self, BufRead, Write};
 use std::process::Command;
 
@@ -40,10 +41,24 @@ impl Executor for ExecExecutor {
 }
 
 fn main() {
+    let current_dir: String;
+    let current_dir_result = env::current_dir();
+    if let Err(error) = current_dir_result {
+        current_dir = format!("Failed getting current directory: {}", error);
+    } else {
+        // Ref: https://stackoverflow.com/a/42579588/473672
+        current_dir = current_dir_result
+            .unwrap()
+            .into_os_string()
+            .into_string()
+            // FIXME: Will fail if path is not UTF-8
+            .unwrap();
+    }
+
     loop {
         // FIXME: Print a usable prompt
         println!();
-        println!("/current/path/goes/here");
+        println!("{}", current_dir);
 
         // FIXME: Should be # if we're root
         print!("$ ");
