@@ -136,6 +136,10 @@ impl Executor for Shell {
         let mut command = Command::new(executable);
         command.current_dir(self.current_dir.to_owned());
 
+        // FIXME: This isn't very generic. Maybe put this in the default config
+        // file with an associated comment?
+        command.env("CLICOLOR", "1");
+
         for arg in args {
             command_with_args.push(arg.to_string());
             command.arg(arg);

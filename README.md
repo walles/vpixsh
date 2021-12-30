@@ -46,7 +46,7 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- If failing, show most recent exit code in the prompt
+- If failing, show most recent exit code in red at the prompt
 - Command line editing
 - History collection
 - Suggestions from history
@@ -75,6 +75,8 @@ Do `cargo test` to run the test suite.
 - Smart history search using `fzf` (or whatever)
 - `shellcheck` command lines and show as-you-type hints
 - Handle multiline input at the prompt; `for` loops, function declarations...
+- `fish` has automatic coloring of both BSD `ls` (set `CLICOLOR`) and GNU `ls`
+  (pass `--color=auto`), should we do that as well?
 
 ### DONE
 
@@ -92,3 +94,4 @@ Do `cargo test` to run the test suite.
   - `cd ..` should go one notch up, not add `..` to the current path
   - `cd -` should go back to the previous directory
 - Print prompt in green (same as `fish`)
+- When people do `ls`, they should get color. Export CLICOLOR=1 by default!
