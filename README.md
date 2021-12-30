@@ -47,12 +47,10 @@ Do `cargo test` to run the test suite.
 ### Before the shell can be used at all
 
 - Main loop:
-  - Print prompt
-  - Read command line
+  - DONE: Print prompt
+  - DONE: Read command line
   - Parse the command line we just read
   - Execute the command line
-- Support for `exit` command
-- Support for ctrl-d to exit
 
 ### Before Johan can use it as his default shell
 
@@ -70,6 +68,7 @@ Do `cargo test` to run the test suite.
 
 ### Before others can use it
 
+- Support for `exit` command
 - Print useful error diagnostics on command line parse errors
 - Print a report-errors-here message on crashes and on startup
 - Job control, backgrounding things with ctrl-z or `&`, `fg`, `bg`, `jobs`
@@ -81,3 +80,8 @@ Do `cargo test` to run the test suite.
 - Print hints on `cd` so we know where we're going on `cd ../..`
 - Smart history search using `fzf` (or whatever)
 - `shellcheck` command lines and show as-you-type hints
+- Handle multiline input at the prompt; `for` loops, function declarations...
+
+### DONE
+
+- Support for ctrl-d to exit
