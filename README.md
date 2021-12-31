@@ -46,7 +46,12 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- If failing, show most recent exit code in red at the prompt
+- Test prompt exit status display with:
+  - Success
+  - Failure
+  - Various `cd` issues
+  - Command not found
+  - Kill by signal
 - Command line editing
 - History collection
 - Suggestions from history
@@ -95,3 +100,4 @@ Do `cargo test` to run the test suite.
   - `cd -` should go back to the previous directory
 - Print prompt in green (same as `fish`)
 - When people do `ls`, they should get color. Export CLICOLOR=1 by default!
+- If the last command failed, show its exit code in red at the prompt
