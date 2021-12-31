@@ -1,6 +1,7 @@
 #![allow(clippy::needless_return)]
 
 use std::io::{self, BufRead, Write};
+use std::os::unix::prelude::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
@@ -88,7 +89,7 @@ impl Shell {
             let env_home = env::var("HOME");
             if let Err(error) = env_home {
                 println!("ERROR: Cannot read HOME environment variable: {}", error);
-                return "cd: HOME not set".to_string();
+                return "HOME not set".to_string();
             }
             self.cd(&[env_home.unwrap()]);
             return "".to_string();
@@ -135,6 +136,12 @@ impl Shell {
                 target_path.to_string_lossy(),
                 error
             );
+            if let Some(os_error) = error.raw_os_error() {
+                if os_error == 13 {
+                    // "13" == EPERM
+                    return "Permission denied".to_string();
+                }
+            }
             return error.to_string();
         }
 
@@ -166,8 +173,13 @@ impl Shell {
         println!("About to do: exec('{}')", command_with_args.join("', '"));
         let exec_result = command.spawn();
         if let Err(error) = exec_result {
-            println!("exec() failed: {}", error);
-            return "Not found".to_string();
+            if let Some(os_error) = error.raw_os_error() {
+                if os_error == 2 {
+                    // "2" == ENOENT
+                    return "Not found".to_string();
+                }
+            }
+            return error.to_string();
         }
 
         let mut child = exec_result.unwrap();
@@ -180,6 +192,11 @@ impl Shell {
         let exit_status = wait_result.unwrap();
         if exit_status.success() {
             return "".to_string();
+        } else if let Some(signal) = exit_status.signal() {
+            // FIXME: Present pretty signal names when available
+            return format!("SIG{}", signal);
+        } else if let Some(exitcode) = exit_status.code() {
+            return format!("{}", exitcode);
         } else {
             return format!("{}", exit_status);
         }
@@ -189,7 +206,6 @@ impl Shell {
 impl Executor for Shell {
     fn execute(&mut self, executable: &str, args: &[String]) {
         self.last_command_exit_description = self.do_execute(executable, args);
-        println!("Exit status: {}", self.last_command_exit_description);
     }
 }
 

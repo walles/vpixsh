@@ -46,16 +46,10 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- Test prompt exit status display with:
-  - Success
-  - Failure
-  - Various `cd` issues
-  - Command not found
-  - Kill by signal
-- Command line editing
 - History collection
-- Suggestions from history
 - Arrow up to go back in history
+- Command line editing
+- Suggestions from history
 - Basic completion of binaries, and arg file names
 - Smart completion
 - Syntax highlighted command line
@@ -101,3 +95,10 @@ Do `cargo test` to run the test suite.
 - Print prompt in green (same as `fish`)
 - When people do `ls`, they should get color. Export CLICOLOR=1 by default!
 - If the last command failed, show its exit code in red at the prompt
+- Test prompt exit status display with:
+  - Success
+  - Failure
+  - Kill by signal
+  - Command not found
+  - Various `cd` issues
+  - `cd` into disallowed directory
