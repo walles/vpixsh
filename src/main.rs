@@ -1,6 +1,7 @@
 #![allow(clippy::needless_return)]
 
 use std::env;
+use std::fs;
 use std::io;
 use std::io::Write;
 use std::os::unix::prelude::ExitStatusExt;
@@ -21,11 +22,71 @@ struct Shell {
     current_dir: PathBuf,
     oldpwd: PathBuf,
 
+    /// Ref: https://crates.io/crates/rustyline/#user-content-example
+    readline: rustyline::Editor<()>,
+
     /// Contains an exit status in string form, or a signal name, or the empty
     /// string if the last command succeeded.
     ///
     /// Will be displayed as part of the prompt.
     last_command_exit_description: String,
+}
+
+/// Loads history if we have any
+fn create_readline() -> rustyline::Editor<()> {
+    let mut readline = rustyline::Editor::<()>::new();
+
+    let maybe_homedir = env::var_os("HOME");
+    if maybe_homedir == None {
+        println!("WARNING: Home directory not set, cannot load history");
+        return readline;
+    }
+
+    let mut history_path = PathBuf::from(maybe_homedir.unwrap());
+    history_path.push(".vpixsh/history");
+    if history_path.exists() {
+        if let Err(error) = readline.load_history(&history_path) {
+            println!(
+                "WARNING: Failed to read history from {:?}: {}",
+                history_path, error
+            );
+        }
+    }
+
+    return readline;
+}
+
+/// Save history
+fn drop_readline(readline: &mut rustyline::Editor<()>) {
+    // FIXME: Take this value from some internal HOME variable? So if the user
+    // sets HOME to some value while inside of the shell that's the HOME we'll
+    // use for saving?
+    let maybe_homedir = env::var_os("HOME");
+    if maybe_homedir == None {
+        println!("WARNING: Home directory not set, cannot save history");
+        return;
+    }
+
+    let mut history_dir = PathBuf::from(maybe_homedir.unwrap());
+    history_dir.push(".vpixsh");
+    if let Err(error) = fs::create_dir_all(&history_dir) {
+        println!(
+            "WARNING: Cannot create settings directory {:?}, cannot save history: {}",
+            history_dir, error
+        );
+        return;
+    }
+
+    let mut history_path = history_dir.clone();
+    history_path.push("history");
+
+    if let Err(error) = readline.save_history(&history_path) {
+        println!(
+            "WARNING: Saving history into {:?} failed: {}",
+            history_path, error
+        );
+        return;
+    }
 }
 
 impl Shell {
@@ -43,14 +104,12 @@ impl Shell {
         return Shell {
             current_dir: current_dir.to_owned(),
             oldpwd: current_dir,
+            readline: create_readline(),
             last_command_exit_description: "".to_string(),
         };
     }
 
     fn run(&mut self) {
-        // Ref: https://crates.io/crates/rustyline/#user-content-example
-        let mut rl = rustyline::Editor::<()>::new();
-
         loop {
             // FIXME: Print a colorful prompt with VCS info when available
             println!();
@@ -72,11 +131,9 @@ impl Shell {
             io::stdout().flush().unwrap();
 
             // Read a line from stdin
-            // Ref: https://stackoverflow.com/a/30186553/473672
-
-            match rl.readline(&prompt) {
+            match self.readline.readline(&prompt) {
                 Ok(line) => {
-                    rl.add_history_entry(&line);
+                    self.readline.add_history_entry(&line);
                     if let Err(error) = parse(&line, self) {
                         println!("Parse error: {}", error);
                     }
@@ -150,6 +207,12 @@ impl Shell {
         } else {
             return format!("{}", exit_status);
         }
+    }
+}
+
+impl Drop for Shell {
+    fn drop(&mut self) {
+        drop_readline(&mut self.readline);
     }
 }
 

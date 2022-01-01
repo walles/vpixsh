@@ -46,14 +46,15 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- History persistence between sessions
 - Suggestions from history
 - Basic completion of binaries, and arg file names
 - Smart completion
 - Syntax highlighted command line
 - Informative VCS prompt
 - Pipes
-- Handle ctrl-c as expected
+- Handle ctrl-c on the command line as expected
+- Start `cat`, do ctrl-c, `cat` should now terminate with a signal and you
+  should get your shell prompt back
 - Typing just a directory name should `cd` into that directory
 
 ### Before others can use it
@@ -66,6 +67,8 @@ Do `cargo test` to run the test suite.
 
 ### Misc
 
+- After you enter commands in two shells running at the same time, then exit
+  both shells, all commands should then be visible in the history file
 - Complete `tokenizer.rs` with support for all kinds of quoting
 - Fully `bash` compatible command line parser
 - Print hints on `cd` so we know where we're going on `cd ../..`
@@ -103,3 +106,4 @@ Do `cargo test` to run the test suite.
 - Command line editing
 - History collection
 - Arrow up to go back in history
+- History persistence between sessions
