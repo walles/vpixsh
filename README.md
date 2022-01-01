@@ -46,8 +46,7 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- History collection
-- Arrow up to go back in history
+- History persistence between sessions
 - Suggestions from history
 - Basic completion of binaries, and arg file names
 - Smart completion
@@ -102,3 +101,5 @@ Do `cargo test` to run the test suite.
   - Various `cd` issues
   - `cd` into disallowed directory
 - Command line editing
+- History collection
+- Arrow up to go back in history

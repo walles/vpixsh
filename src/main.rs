@@ -75,6 +75,7 @@ impl Shell {
 
             match rl.readline(&prompt) {
                 Ok(line) => {
+                    rl.add_history_entry(&line);
                     if let Err(error) = parse(&line, self) {
                         println!("Parse error: {}", error);
                     }
