@@ -1,10 +1,13 @@
 #![allow(clippy::needless_return)]
 
-use std::io::{self, BufRead, Write};
+use std::io;
+use std::io::Write;
 use std::os::unix::prelude::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
+
+use rustyline::error::ReadlineError;
 
 use crate::ansicolor::{green, red};
 use crate::parser::{parse, Executor};
@@ -44,42 +47,52 @@ impl Shell {
     }
 
     fn run(&mut self) {
+        // Ref: https://crates.io/crates/rustyline/#user-content-example
+        let mut rl = rustyline::Editor::<()>::new();
+
         loop {
             // FIXME: Print a colorful prompt with VCS info when available
             println!();
             println!("{}", green(&self.current_dir.to_string_lossy()));
 
+            let mut error_prefix = "".to_string();
             if !self.last_command_exit_description.is_empty() {
-                print!(
+                error_prefix = format!(
                     "{} ",
                     red(&format!("[{}]", &self.last_command_exit_description))
                 );
             }
 
-            // FIXME: Should be # if we're root
-            print!("$ ");
+            // FIXME: The "$" should be a "#" if we're root
+            let prompt = format!("{}$ ", error_prefix);
 
             // Flush our prompt so the user can see it, necessary since the prompt
             // doesn't end with a newline
-            if let Err(error) = io::stdout().flush() {
-                panic!("{}", error)
-            }
+            io::stdout().flush().unwrap();
 
             // Read a line from stdin
             // Ref: https://stackoverflow.com/a/30186553/473672
-            let maybe_line = io::stdin().lock().lines().next();
-            if maybe_line.is_none() {
-                // EOF, seeya!
-                println!();
-                break;
-            }
 
-            // FIXME: Second unwrap is of a Result<String, Error>. I don't know what
-            // that error could be, let's fix that when it happens!
-            let line = maybe_line.unwrap().unwrap();
-
-            if let Err(error) = parse(&line, self) {
-                println!("Parse error: {}", error);
+            match rl.readline(&prompt) {
+                Ok(line) => {
+                    if let Err(error) = parse(&line, self) {
+                        println!("Parse error: {}", error);
+                    }
+                }
+                Err(ReadlineError::Interrupted) => {
+                    // FIXME: How should we handle this?
+                    println!("CTRL-C");
+                    break;
+                }
+                Err(ReadlineError::Eof) => {
+                    // EOF, seeya!
+                    println!();
+                    break;
+                }
+                Err(err) => {
+                    // If this fails the shell cannot function any more
+                    panic!("Failed to read line from stdin: {}", err);
+                }
             }
         }
     }
@@ -150,6 +163,7 @@ impl Shell {
         return "".to_string();
     }
 
+    /// Returns an error message for the prompt, or "" on success
     fn do_execute(&mut self, executable: &str, args: &[String]) -> String {
         let mut command_with_args = vec![executable.to_string()];
 

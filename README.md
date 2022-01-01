@@ -48,7 +48,6 @@ Do `cargo test` to run the test suite.
 
 - History collection
 - Arrow up to go back in history
-- Command line editing
 - Suggestions from history
 - Basic completion of binaries, and arg file names
 - Smart completion
@@ -102,3 +101,4 @@ Do `cargo test` to run the test suite.
   - Command not found
   - Various `cd` issues
   - `cd` into disallowed directory
+- Command line editing
