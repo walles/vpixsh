@@ -46,7 +46,12 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- Basic completion of binaries, and arg file names
+- Basic completion:
+  - Of directory arguments
+  - Of file arguments
+  - Of symlink arguments
+  - Of binaries
+  - Of builtin commands, should behave like binaries
 - Suggestions from history
 - Read environment from a config file, useful for `PAGER` and `EDITOR` variables
 - Smart completion (`man signa` then TAB should complete into `man signal`)

@@ -15,6 +15,7 @@ use crate::parser::{parse, Executor};
 
 mod ansicolor;
 mod cd;
+mod completion;
 mod parser;
 mod tokenizer;
 
