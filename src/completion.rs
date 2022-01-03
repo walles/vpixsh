@@ -33,6 +33,10 @@ impl Completer for Shell {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use tempfile::Builder;
+
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
@@ -51,5 +55,13 @@ mod tests {
         assert_eq!(find_completion_base("  ", 0), None);
     }
 
-    // FIXME: Add do_complete() tests
+    #[test]
+    fn test_do_complete() {
+        let tmp_dir = Builder::new().prefix("example").tempdir().unwrap();
+        fs::create_dir(tmp_dir.path().join("src")).unwrap();
+        fs::create_dir(tmp_dir.path().join("src/apa")).unwrap();
+        fs::create_dir(tmp_dir.path().join("src/bepa")).unwrap();
+
+        assert_eq!(do_complete(tmp_dir.path(), "sr"), vec!["src/"]);
+    }
 }
