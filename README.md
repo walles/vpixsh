@@ -46,16 +46,16 @@ Do `cargo test` to run the test suite.
 
 ### Before Johan can use it as his default shell
 
-- Suggestions from history
 - Basic completion of binaries, and arg file names
-- Smart completion
+- Suggestions from history
+- Read environment from a config file, useful for `PAGER` and `EDITOR` variables
+- Smart completion (`man signa` then TAB should complete into `man signal`)
 - Syntax highlighted command line
 - Informative VCS prompt
-- Pipes
+- Pipes (`echo hej | wc -l`)
 - Handle ctrl-c on the command line as expected
 - Start `cat`, do ctrl-c, `cat` should now terminate with a signal and you
   should get your shell prompt back
-- Typing just a directory name should `cd` into that directory
 
 ### Before others can use it
 
@@ -67,6 +67,7 @@ Do `cargo test` to run the test suite.
 
 ### Misc
 
+- Typing just a directory name should `cd` into that directory
 - After you enter commands in two shells running at the same time, then exit
   both shells, all commands should then be visible in the history file
 - Complete `tokenizer.rs` with support for all kinds of quoting
