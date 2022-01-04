@@ -2,13 +2,33 @@ use std::path::Path;
 
 use rustyline::completion::Completer;
 
-use crate::Shell;
+use crate::{tokenizer::to_tokens, Shell};
 
 fn do_complete(current_dir: &Path, base: &str) -> Vec<String> {
     return Vec::with_capacity(0);
 }
 
 fn find_completion_base(line: &str, pos: usize) -> Option<(&str, usize)> {
+    let tokenization_result = to_tokens(line);
+    if tokenization_result.is_err() {
+        return None;
+    }
+
+    let tokens = tokenization_result.unwrap();
+    for token in tokens {
+        if token.text.location_offset() > pos {
+            // Token starts after current position, keep looking
+            continue;
+        }
+
+        if token.text.location_offset() + token.text.len() < pos {
+            // Token ends before current position, keep looking
+            continue;
+        }
+
+        return Some((token.text.fragment(), token.text.location_offset()));
+    }
+
     return None;
 }
 
@@ -16,7 +36,7 @@ impl Completer for Shell {
     type Candidate = String;
 
     fn complete(
-        &self, // FIXME should be `&mut self`
+        &self,
         line: &str,
         pos: usize,
         _ctx: &rustyline::Context<'_>,
@@ -49,11 +69,19 @@ mod tests {
         assert_eq!(find_completion_base("cd sr", 1), Some(("cd", 0)));
         assert_eq!(find_completion_base("cd sr", 0), Some(("cd", 0)));
 
+        assert_eq!(find_completion_base("cd  sr", 3), None);
+
         assert_eq!(find_completion_base("", 0), None);
         assert_eq!(find_completion_base("  ", 2), None);
         assert_eq!(find_completion_base("  ", 1), None);
         assert_eq!(find_completion_base("  ", 0), None);
     }
+
+    // FIXME: Test finding the completion base in a string with non-ASCII
+    // Unicode characters
+
+    // FIXME: Test finding the completion base in a string containing escaping,
+    // by backslash, single quotes or double quotes
 
     #[test]
     fn test_do_complete() {
@@ -64,4 +92,6 @@ mod tests {
 
         assert_eq!(do_complete(tmp_dir.path(), "sr"), vec!["src/"]);
     }
+
+    // FIXME: Test completing a string containing non-ASCII Unicode characters
 }
