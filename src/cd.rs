@@ -96,14 +96,7 @@ impl Shell {
             return "Too many args".to_string();
         }
 
-        let dir_before: PathBuf;
-        match env::current_dir() {
-            Ok(current_dir) => dir_before = current_dir,
-            Err(error) => {
-                println!("WARNING: Getting current directory failed: {}", error);
-                dir_before = PathBuf::new();
-            }
-        }
+        let dir_before = env::current_dir();
 
         let target = &args[0];
         let problem: String;
@@ -113,9 +106,19 @@ impl Shell {
             problem = self.cd_directory(PathBuf::from(target));
         }
 
-        if problem.is_empty() {
-            self.oldpwd = dir_before;
+        if !problem.is_empty() {
+            // Trouble, don't update oldpwd
+            return problem;
         }
+
+        match dir_before {
+            Ok(current_dir) => self.oldpwd = current_dir,
+            Err(error) => {
+                println!("WARNING: Getting previous directory failed: {}", error);
+                self.oldpwd.clear();
+            }
+        }
+
         return problem;
     }
 }
