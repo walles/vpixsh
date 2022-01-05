@@ -78,6 +78,8 @@ Do `cargo test` to run the test suite.
 - Handle multiline input at the prompt; `for` loops, function declarations...
 - `fish` has automatic coloring of both BSD `ls` (set `CLICOLOR`) and GNU `ls`
   (pass `--color=auto`), should we do that as well?
+- Prompt works OK if current directory is inaccessible
+- `cd` works OK if current directory is inaccessible
 
 ### DONE
 

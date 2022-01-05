@@ -19,7 +19,6 @@ mod parser;
 mod tokenizer;
 
 struct Shell {
-    current_dir: PathBuf,
     oldpwd: PathBuf,
 
     /// Ref: https://crates.io/crates/rustyline/#user-content-example
@@ -95,14 +94,13 @@ impl Shell {
         let current_dir_result = env::current_dir();
         if let Err(error) = current_dir_result {
             // Just leave the current_dir empty
-            println!("ERROR: Failed getting current directory: {}", error);
+            println!("WARNING: Failed getting current directory: {}", error);
         } else {
             // Ref: https://stackoverflow.com/a/42579588/473672
             current_dir = current_dir_result.unwrap();
         }
 
         return Shell {
-            current_dir: current_dir.to_owned(),
             oldpwd: current_dir,
             readline: create_readline(),
             last_command_exit_description: "".to_string(),
@@ -113,7 +111,10 @@ impl Shell {
         loop {
             // FIXME: Print a colorful prompt with VCS info when available
             println!();
-            println!("{}", green(&self.current_dir.to_string_lossy()));
+            match env::current_dir() {
+                Ok(current_dir) => println!("{}", green(&current_dir.to_string_lossy())),
+                Err(error) => println!("{}", red(&format!("[{}]", error))),
+            }
 
             let mut error_prefix = "".to_string();
             if !self.last_command_exit_description.is_empty() {
@@ -161,7 +162,6 @@ impl Shell {
         let mut command_with_args = vec![executable.to_string()];
 
         let mut command = Command::new(executable);
-        command.current_dir(self.current_dir.to_owned());
 
         // Color BSD "ls" output.
         // FIXME: This isn't very generic. Maybe put this in the default config

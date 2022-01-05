@@ -1,18 +1,41 @@
-use std::{env, fs, path::PathBuf};
+use std::{
+    env::{self},
+    fs,
+    path::PathBuf,
+};
 
 use crate::Shell;
 
 impl Shell {
     fn cd_minus(&mut self) -> String {
-        self.current_dir = self.oldpwd.to_owned();
+        if let Err(error) = env::set_current_dir(&self.oldpwd) {
+            println!(
+                "ERROR: Switching into {} failed: {}",
+                &self.oldpwd.to_string_lossy(),
+                error
+            );
+            return error.to_string();
+        }
         return "".to_string();
     }
 
     fn cd_directory(&mut self, mut target: PathBuf) -> String {
         if target.is_relative() {
-            let mut absolute_target = PathBuf::from(&self.current_dir);
-            absolute_target.push(target);
-            target = absolute_target;
+            match env::current_dir() {
+                Ok(current_dir) => {
+                    let mut absolute_target = current_dir;
+                    absolute_target.push(target);
+                    target = absolute_target;
+                }
+                Err(error) => {
+                    // FIXME: What about "cd .." when the current directory is inaccessible?
+                    println!(
+                        "ERROR: Cannot do relative cd from inaccessible current directory: {}",
+                        error
+                    );
+                    return error.to_string();
+                }
+            }
         }
 
         if !target.is_dir() {
@@ -46,7 +69,15 @@ impl Shell {
             return error.to_string();
         }
 
-        self.current_dir = target;
+        if let Err(error) = env::set_current_dir(&target) {
+            println!(
+                "ERROR: Switching into {} failed: {}",
+                &target.to_string_lossy(),
+                error
+            );
+            return error.to_string();
+        }
+
         return "".to_string();
     }
 
@@ -65,7 +96,14 @@ impl Shell {
             return "Too many args".to_string();
         }
 
-        let dir_before = self.current_dir.clone();
+        let dir_before: PathBuf;
+        match env::current_dir() {
+            Ok(current_dir) => dir_before = current_dir,
+            Err(error) => {
+                println!("WARNING: Getting current directory failed: {}", error);
+                dir_before = PathBuf::new();
+            }
+        }
 
         let target = &args[0];
         let problem: String;
